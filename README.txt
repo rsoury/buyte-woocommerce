@@ -10,7 +10,7 @@ Buyte WooCommerce Plugin enables customer to checkout from the Checkout, Cart an
 In just few clicks, you can start offering Apple Pay on your Woocommerce Store.
 
 **What is Buyte Mobile Payments?**
-Buyte provides a widget that allows you to implement Apple Pay with a simple snippet and have it exposed across all browsers and devices. No longer are your customers force to use Safari to pay with Apple Pay.
+Buyte provides a widget that allows you to implement Apple Pay and have it exposed across all browsers and devices. No longer are your customers force to use Safari to pay with Apple Pay.
 We also provide full support for our integrations, which means a faulty SSL certificate won't block your streamlined mobile payment method.
 
 == Installation ==
