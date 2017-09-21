@@ -34,32 +34,60 @@ class WC_Buyte_Mobile_Payments{
 	/** @var \WC_Buyte_Mobile_Payments single instance of this plugin */
 	protected static $instance;
 
-	public $id = 'buyte';
-	public $settings_title = 'Buyte';
-	public $settings_description = 'Buyte provides a widget that allows you to implement Apple Pay and have it exposed across all browsers and devices.';
-
 	public $WC_Buyte_Mobile_Payments_Config;
+	public $WC_Buyte_Mobile_Payments_Widget;
 
 
 	public function __construct() {
-		$this->load_dependencies();
-		$this->run();
-
 		add_action( 'plugins_loaded', array( $this, 'initialize' ) );
 	}
 
 	public function initialize(){
+		$this->load_dependencies();
 
 		// Set the custom order number on the new order.  we hook into wp_insert_post for orders which are created
-		// add_action( 'wp_insert_post', array( $this, 'on_order_creation' ), 10, 2 );
+		add_action( 'wp_insert_post', array( $this, 'on_order_creation' ), 10, 2 );
+		add_action( 'buyte_ajax_action', array($this, 'process_buyte_actions') );
 
 		// Handle Settings Tab
-		$this->WC_Buyte_Mobile_Payments_Config->init();
+		$this->handle_config();
+
+		// Handle Widget loads
+		$this->handle_widget();
 	}
 
 	public function on_order_creation(){
 
 	}
+
+	 /**
+     * This is the function to process the custom defined endpoint
+     *
+     * @param $wp
+     * @return bool
+     */
+    public function process_buyte_actions($wp)
+    {
+        $query_vars = $wp->query_vars;
+
+        if (isset($query_vars['p']) == false || $query_vars['p'] != "buyte") {
+            return false;
+        }
+
+        if (isset($query_vars['route']) == false) {
+            return false;
+        }
+
+       	// WC_Buyte_Mobile_Payments_Config::log('Query vars:' . print_r($query_vars, true));
+
+        switch ($query_vars['route']) {
+        	case 'success':
+        		break;
+            default:
+            	break;
+        }
+        exit;
+    }
 
     public static function instance() {
 		if ( is_null( self::$instance ) ) {
@@ -69,10 +97,17 @@ class WC_Buyte_Mobile_Payments{
 	}
 
 	private function load_dependencies(){
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-wc-buyte-mobile-payments-config.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-mobile-payments-config.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-mobile-payments-widget.php';
 	}
-	private function run(){
+	private function handle_config(){
 		$this->WC_Buyte_Mobile_Payments_Config = new WC_Buyte_Mobile_Payments_Config($this);
+		$this->WC_Buyte_Mobile_Payments_Config->init();
+	}
+
+	private function handle_widget(){
+		$this->WC_Buyte_Mobile_Payments_Widget = new WC_Buyte_Mobile_Payments_Widget($this);
+		$this->WC_Buyte_Mobile_Payments_Widget->init_hooks();
 	}
 
 	public static function is_woocommerce_active(){
