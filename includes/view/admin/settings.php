@@ -4,22 +4,22 @@
 <table id="shipping-methods-table">
 	<thead>
 		<tr>
-			<td>Shipping Title</td>
-			<td>Shipping Price</td>
-			<td>Shipping Description</td>
+			<td>Shipping Title<div><i>eg. Express Delivery</i></div></td>
+			<td>Shipping Price<div><i>eg. 5.99</i></div></td>
+			<td>Shipping Description<div><i>eg. Delivery in 5 days</i></div></td>
 			<td></td>
 		</tr>
 	</thead>
 	<tbody>
 		<tr>
 			<td>
-				<input class="input-text regular-input shipping-title-input" placeholder="Express Delivery" type="text" />
+				<input class="input-text regular-input shipping-title-input" type="text" />
 			</td>
 			<td>
-				<input class="wc_input_decimal input-text regular-input shipping-price-input" placeholder="5.99" type="text" />
+				<input class="wc_input_decimal input-text regular-input shipping-price-input" type="text" />
 			</td>
 			<td>
-				<input class="input-text regular-input shipping-desc-input" placeholder="Delivery in 5 days" type="text" />
+				<input class="input-text regular-input shipping-desc-input" type="text" />
 			</td>
 			<td>
 				<div class="button-primary">+</div>

@@ -31,6 +31,7 @@
 			$(e.target).closest('tr').remove();
 			var lastRow = this.getLastRow();
 			lastRow.find(ButtonClass).text('+').unbind().off().click(this.addRow);
+			this.onSave();
 		},
 		cleanAmount: function(amount){
 			return (Math.round(parseFloat(amount) * 100) / 100).toFixed(2) + '';
@@ -64,25 +65,19 @@
 		},
 		onLoad: function(){
 			this.bindAll.bind(this)();
+			ShippingTable.find(ButtonClass).click(this.addRow);
+			ShippingTable.find('tr').find('.shipping-title-input, .shipping-price-input, .shipping-desc-input').blur(this.onSave);
 			try{
-				var prefill = CurrentValue ? JSON.parse(CurrentValue) : '';
-				if(prefill){
-					ShippingTable.html('');
-					$.each(prefill, function(index, method){
+				var prefill = CurrentValue ? JSON.parse(CurrentValue) : [];
+				if(prefill ? prefill.length : false){
+					for(var i = prefill.length - 1; i >= 0; i --){
+						var method = prefill[i];
 						var newRow = this.newRow(method);
-						if(index === prefill.length - 1){
-							newRow.find(ButtonClass).text('+').unbind().off().click(this.addRow)
-						}else{
-							newRow.find(ButtonClass).text('-').unbind().off().click(this.removeRow);
-						}
-						ShippingTable.append(newRow);
-					});
+						newRow.find(ButtonClass).text('-').unbind().off().click(this.removeRow);
+						ShippingTable.prepend(newRow);
+					}
 				}
 			}catch(e){}
-
-			ShippingTable.find(ButtonClass).click(this.addRow);
-			ShippingTable.find('tr').find('.shipping-title-input, .shipping-price-input, .shipping-desc-input').blur(this.onSave)
-			// $('input.woocommerce-save-button[type="submit"]').click(this.onSave);
 		},
 		bindAll: function(){
 			this.getLastRow = this.getLastRow.bind(this);
@@ -95,7 +90,5 @@
 		}
 	};
 
-	$(window).load(function(){
-		Ops.onLoad();
-	});
+	Ops.onLoad();
 })(window.jQuery || window.$);
