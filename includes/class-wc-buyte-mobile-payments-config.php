@@ -9,6 +9,7 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
 	const CONFIG_DISPLAY_CHECKOUT = 'display_checkout';
 	const CONFIG_DISPLAY_CART = 'display_cart';
 	const CONFIG_DISPLAY_PRODUCT = 'display_product';
+    const CONFIG_SHIPPING_METHODS = 'shipping_methods';
 
 	//Log levels
     const LOG_LEVEL_ALL = 1;
@@ -39,10 +40,14 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
 		add_filter( 'woocommerce_settings_tabs_array', array($this, 'add_settings_tab'), 50 );
         add_action( 'woocommerce_settings_tabs_settings_tab_' . $this->id, array($this, 'settings_tab') );
         //save admin options
-        add_action('woocommerce_update_options_settings_tab_' . $this->id, array($this, 'process_admin_options'));
+        add_action( 'woocommerce_update_options_settings_tab_' . $this->id, array($this, 'process_admin_options') );
+        // Plugin settings link
+        add_filter( 'plugin_action_links_' . $this->WC_Buyte_Mobile_Payments->basename(), array($this, 'plugin_settings_link') );
 	}
 
 	public function settings_tab(){
+        $admin_option_js = esc_url(plugins_url('assets/js/admin_options.js', dirname(__FILE__)));
+        $admin_options_css = esc_url(plugins_url('assets/css/admin.css', dirname(__FILE__)));
         include plugin_dir_path( __FILE__ ) . '/view/admin/settings.php';
 	}
     public function process_admin_options(){
@@ -99,7 +104,11 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
                 'type' => 'checkbox',
                 'desc_tip' => __('Enables the display of Buyte\'s Apple Pay Widget on the Product Page', 'woocommerce'),
                 'default' => 'yes'
-			)
+			),
+            self::CONFIG_SHIPPING_METHODS => array(
+                'title' => __('Enter your shipping methods', 'woocommerce'),
+                'desc_tip' => __('These are shipping methods that will appear in your Apple Pay payment sheet', 'woocommerce')
+            )
 		);
 
 		return $settings;
@@ -118,13 +127,20 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
         return $this->get_option(self::CONFIG_ENABLED) === 'yes';
     }
 
+    public function plugin_settings_link($links){
+        $settings_url = "admin.php?page=wc-settings&tab=settings_tab_buyte";
+        $settings_link = sprintf(__('<a href="%s">Settings</a>', 'woocommerce'), $settings_url); 
+        array_unshift($links, $settings_link); 
+        return $links;
+    }
+
     /**
      * Log the message when necessary
      *
      * @param $message
      * @param int $log_level
      */
-    public static function log($message, $log_level = WC_Zipmoney_Payment_Gateway_Config::LOG_LEVEL_ALL)
+    public static function log($message, $log_level = self::LOG_LEVEL_ALL)
     {
         if (self::$config_log_level > $log_level) {
             //log the message with log_level higher than the default value only

@@ -46,8 +46,8 @@ class WC_Buyte_Mobile_Payments{
 		$this->load_dependencies();
 
 		// Set the custom order number on the new order.  we hook into wp_insert_post for orders which are created
-		add_action( 'wp_insert_post', array( $this, 'on_order_creation' ), 10, 2 );
-		add_action( 'buyte_ajax_action', array($this, 'process_buyte_actions') );
+		// add_action( 'wp_insert_post', array( $this, 'on_order_creation' ), 10, 2 );
+		// add_action( 'buyte_ajax_action', array($this, 'process_buyte_actions') );
 
 		// Handle Settings Tab
 		$this->handle_config();
@@ -87,6 +87,10 @@ class WC_Buyte_Mobile_Payments{
             	break;
         }
         exit;
+    }
+
+    public function basename(){
+    	return plugin_basename(__FILE__);
     }
 
     public static function instance() {
