@@ -48,6 +48,7 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
 	public function settings_tab(){
         $admin_option_js = esc_url(plugins_url('assets/js/admin_options.js', dirname(__FILE__)));
         $admin_options_css = esc_url(plugins_url('assets/css/admin.css', dirname(__FILE__)));
+
         include plugin_dir_path( __FILE__ ) . '/view/admin/settings.php';
 	}
     public function process_admin_options(){
@@ -123,8 +124,16 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
         return $this->get_option(self::CONFIG_PUBLIC_KEY);
     }
 
-    public function isEnabled(){
+    public function is_enabled(){
         return $this->get_option(self::CONFIG_ENABLED) === 'yes';
+    }
+
+    public function get_shipping_methods(){
+        $shipping_methods = json_decode($this->get_option(self::CONFIG_SHIPPING_METHODS));
+        if($shipping_methods){
+            return $shipping_methods;
+        }
+        return array();
     }
 
     public function plugin_settings_link($links){

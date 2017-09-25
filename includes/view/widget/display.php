@@ -1,5 +1,5 @@
 <!-- The Buyte Mobile Payments Button - For more info visit: https://buyte.co/ -->
-<div id="buyte_widget" style="margin: 20px 0;">
+<div id="buyte_widget" style="margin: 20px 0 0 0;text-align: center;">
 	<script 
 		class="buyte-mobile-payment"
 		data-public-key="<?php echo $public_key; ?>"

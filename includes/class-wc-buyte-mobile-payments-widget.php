@@ -17,7 +17,7 @@ class WC_Buyte_Mobile_Payments_Widget{
 			add_action('woocommerce_proceed_to_checkout', array($this, 'render_cart'), 20);
 		}
 		if($this->display_checkout()){
-			add_action('woocommerce_proceed_to_checkout', array($this, 'render_checkout'));
+			add_action('woocommerce_proceed_to_checkout', array($this, 'render_cart'));
 		}
 	}
 
@@ -30,14 +30,21 @@ class WC_Buyte_Mobile_Payments_Widget{
 	}
 	public function get_shipping_method_options(){
 		$options = array('data-shipping-required' => null);
-		
+		$shipping_methods = $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_shipping_methods();
+		if(sizeof($shipping_methods) === 1){
+			$options['data-shipping-method'] = sprintf("%s, %s, %s", $shipping_methods[0]->title, $shipping_methods[0]->price, $shipping_methods[0]->desc);
+		}else{
+			foreach($shipping_methods as $index => $method){
+				$options['data-shipping-method-' . ($index + 1)] = sprintf("%s, %s, %s", $method->title, $method->price, $method->desc);
+			}
+		}
 		return $options;
 	}
 	public function render_product(){
 		$product = wc_get_product();
 		if($product->is_purchasable()){
 			$options = $this->start_options();
-			if(!$product->is_virtual()){
+			if(!$product->is_virtual() && !$product->is_downloadable()){
 				$options = array_merge($options, $this->get_shipping_method_options());
 			}
 			$options['data-item'] = $product->get_name() . ', ' . number_format($product->get_price(), 2);
@@ -47,11 +54,30 @@ class WC_Buyte_Mobile_Payments_Widget{
 	}
 	public function render_cart(){
 		$WC_Session = WC()->session;
-		$this->render();
-	}
-	public function render_checkout(){
-		$WC_Session = WC()->session;
-		$this->render();
+		$cart = $WC_Session->get('cart');
+		$options = $this->start_options();
+		$total_amount = 0;
+
+		if(sizeof($cart) === 1){
+			$product = wc_get_product($cart[0]['product_id']);
+			if(!$product->is_virtual() && !$product->is_downloadable()){
+				$options = array_merge($options, $this->get_shipping_method_options());
+			}
+			// ADD QUANTITIES
+			$options['data-item'] = $product->get_name() . ', ' . number_format($product->get_price(), 2);
+			$total_amount += $product->get_price();
+		}else{
+			$options = array_merge($options, $this->get_shipping_method_options());
+			$count = 1;
+			foreach($cart as $item){
+				$product = wc_get_product($item['product_id']);
+				$options['data-item-' . $count] = $product->get_name() . ', ' . number_format($product->get_price(), 2);
+				$total_amount += $product->get_price();
+				$count++;
+			}
+		}
+		$options['data-total-amount'] = number_format($total_amount, 2);
+		$this->render($this->output_options($options));
 	}
 
 	public function render($output_options = ''){
@@ -68,33 +94,10 @@ class WC_Buyte_Mobile_Payments_Widget{
 			$output .= $key . ($value !== null ? '="' . $value . '"' : '') . ' '; 
 		}
 		return $output;
-
-		/*
-		data-country="AU"
-		data-currency="AUD"
-
-		data-total-text="This awesome product"
-		data-total-amount="95.99"
-
-		data-shipping-method-1-label="Express Shipping"
-		data-shipping-method-1-amount="5.555"
-		data-shipping-method-1-detail="Delivers in 2 business days"
-
-		data-shipping-method-2-label="Free Shipping"
-		data-shipping-method-2-amount="0.00"
-		data-shipping-method-2-detail="Delivers in 7 business days"
-
-		data-shipping-method-3="Cheap Shipping, 2.50, Delivers in 3-5 business days"
-
-		data-item-1-label="Cool Portion"
-		data-item-1-amount="40.00"
-
-		data-item-2="Other Portion, 55.99"
-		 */
 	}
 
 	private function get_public_key(){
-		if(!$this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->isEnabled()){
+		if(!$this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->is_enabled()){
 			return;
 		}
 		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_public_key();
