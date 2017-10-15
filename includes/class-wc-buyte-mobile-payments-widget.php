@@ -14,10 +14,10 @@ class WC_Buyte_Mobile_Payments_Widget{
 			add_action('woocommerce_after_add_to_cart_button', array($this, 'render_product'), 30);
 		}
 		if($this->display_cart()){
-			add_action('woocommerce_proceed_to_checkout', array($this, 'render_cart'), 20);
+			add_action('woocommerce_after_cart', array($this, 'render_cart'), 20);
 		}
 		if($this->display_checkout()){
-			add_action('woocommerce_proceed_to_checkout', array($this, 'render_cart'));
+			add_filter('woocommerce_order_button_html', array($this, 'render_checkout'), 10, 2);
 		}
 	}
 
@@ -40,6 +40,42 @@ class WC_Buyte_Mobile_Payments_Widget{
 		}
 		return $options;
 	}
+
+	public function get_cart_options(){
+		$WC_Session = WC()->session;
+		$cart = $WC_Session->get('cart');
+		$options = $this->start_options();
+		$total_amount = 0;
+
+		if(!empty($cart)){
+			if(sizeof($cart) === 1){
+				$product = wc_get_product($cart[0]['product_id']);
+				if(!$product->is_virtual() && !$product->is_downloadable()){
+					$options = array_merge($options, $this->get_shipping_method_options());
+				}
+				$options['data-item-wc-product-name'] = $product->get_name();
+				$options['data-item-label'] = $product->get_name() . ($cart[0]['quantity'] > 1 ? sprintf(' x%s', $cart[0]['quantity']) : '');
+				$options['data-item-amount'] = number_format($product->get_price(), 2);
+				$total_amount += $product->get_price() * ((int) $cart[0]['quantity']);
+			}else{
+				$options = array_merge($options, $this->get_shipping_method_options());
+				$count = 1;
+				foreach($cart as $item){
+					$product = wc_get_product($item['product_id']);
+					$options['data-item-' . $count . '-wc-product-name'] = $product->get_name();
+					$options['data-item-' . $count . '-label'] = $product->get_name() . ($item['quantity'] > 1 ? sprintf(' x%s', $item['quantity']) : '');
+					$options['data-item-' . $count . '-amount'] = number_format($product->get_price(), 2);
+					$total_amount += $product->get_price() * ((int) $item['quantity']);
+					$count++;
+				}
+			}
+		}
+		$options['data-total-amount'] = number_format($total_amount, 2);
+
+		return $options;
+	}
+
+	// Consider variation id here.
 	public function render_product(){
 		$product = wc_get_product();
 		if($product->is_purchasable()){
@@ -47,40 +83,36 @@ class WC_Buyte_Mobile_Payments_Widget{
 			if(!$product->is_virtual() && !$product->is_downloadable()){
 				$options = array_merge($options, $this->get_shipping_method_options());
 			}
-			$options['data-item'] = $product->get_name() . ', ' . number_format($product->get_price(), 2);
+			$options['data-item-wc-product-name'] = $product->get_name();
+			$options['data-item-label'] = $product->get_name();
+			$options['data-item-amount'] = number_format($product->get_price(), 2);
 			$options['data-total-amount'] = number_format($product->get_price(), 2);
-			$this->render($this->output_options($options));
+			$this->render(
+				$this->output_options($options),
+				esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__))),
+				array(
+					'redirect-url' => $this->get_redirect_url($product->get_id())
+				)
+			);
 		}
 	}
 	public function render_cart(){
-		$WC_Session = WC()->session;
-		$cart = $WC_Session->get('cart');
-		$options = $this->start_options();
-		$total_amount = 0;
-
-		if(sizeof($cart) === 1){
-			$product = wc_get_product($cart[0]['product_id']);
-			if(!$product->is_virtual() && !$product->is_downloadable()){
-				$options = array_merge($options, $this->get_shipping_method_options());
-			}
-			// ADD QUANTITIES
-			$options['data-item'] = $product->get_name() . ', ' . number_format($product->get_price(), 2);
-			$total_amount += $product->get_price();
-		}else{
-			$options = array_merge($options, $this->get_shipping_method_options());
-			$count = 1;
-			foreach($cart as $item){
-				$product = wc_get_product($item['product_id']);
-				$options['data-item-' . $count] = $product->get_name() . ', ' . number_format($product->get_price(), 2);
-				$total_amount += $product->get_price();
-				$count++;
-			}
-		}
-		$options['data-total-amount'] = number_format($total_amount, 2);
-		$this->render($this->output_options($options));
+		$options = $this->get_cart_options();
+		$this->render(
+			$this->output_options($options),
+			esc_url(plugins_url('assets/js/cart_page.js', dirname(__FILE__))),
+			array(
+				'redirect-url' => $this->get_redirect_url()
+			)
+		);
 	}
 
-	public function render($output_options = ''){
+	public function render_checkout($html){
+		$this->render_cart();
+		return $html;
+	}
+
+	public function render($output_options = '', $page_js, $widget_data = array()){
 		$public_key = $this->get_public_key();
 		if(!$public_key){
 			return;
@@ -94,6 +126,10 @@ class WC_Buyte_Mobile_Payments_Widget{
 			$output .= $key . ($value !== null ? '="' . $value . '"' : '') . ' '; 
 		}
 		return $output;
+	}
+
+	public function get_redirect_url($product_id = ''){
+		return '/?p=buyte&route=payment&action_type=success' . ($product_id ? '&product_id=' . $product_id : '');
 	}
 
 	private function get_public_key(){

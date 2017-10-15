@@ -47,17 +47,13 @@ class WC_Buyte_Mobile_Payments{
 
 		// Set the custom order number on the new order.  we hook into wp_insert_post for orders which are created
 		// add_action( 'wp_insert_post', array( $this, 'on_order_creation' ), 10, 2 );
-		// add_action( 'buyte_ajax_action', array($this, 'process_buyte_actions') );
+		add_action( 'parse_request', array($this, 'process_buyte_actions') );
 
 		// Handle Settings Tab
 		$this->handle_config();
 
 		// Handle Widget loads
 		$this->handle_widget();
-	}
-
-	public function on_order_creation(){
-
 	}
 
 	 /**
@@ -74,15 +70,21 @@ class WC_Buyte_Mobile_Payments{
             return false;
         }
 
-        if (isset($query_vars['route']) == false) {
+        if (isset($query_vars['route']) == false || $query_vars['route'] != 'payment') {
             return false;
         }
-
-       	// WC_Buyte_Mobile_Payments_Config::log('Query vars:' . print_r($query_vars, true));
-
-        switch ($query_vars['route']) {
+        
+        switch ($query_vars['action_type']) {
         	case 'success':
+        		if(isset($query_vars['product_id']) == false){
+
+        		}else{
+
+        		}
         		break;
+    		case 'cart':
+    			$options = $this->WC_Buyte_Mobile_Payments_Widget->get_cart_options();
+    			echo json_encode($options);
             default:
             	break;
         }
