@@ -22,9 +22,13 @@
 						});
     					window.Buyte('reload');
     				}
-    			}catch(e){}
+    			}catch(e){
+    				console.error(e);
+    			}
     		},
-    		error: function(data){}
+    		error: function(e){
+    			console.error(e);
+    		}
     	})
 	});
 })(window.jQuery || window.$);

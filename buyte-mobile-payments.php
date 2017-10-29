@@ -77,9 +77,12 @@ class WC_Buyte_Mobile_Payments{
         switch ($query_vars['action_type']) {
         	case 'success':
         		if(isset($query_vars['product_id']) == false){
-
+        			$order = $this->create_order_from_cart();
         		}else{
-
+    				$order = $this->create_order_from_product();
+        		}
+        		if(isset($order)){
+        			echo $this->get_confirmation_url($order);
         		}
         		break;
     		case 'cart':
@@ -100,6 +103,16 @@ class WC_Buyte_Mobile_Payments{
 			self::$instance = new self();
 		}
 		return self::$instance;
+	}
+
+	private function create_order_from_cart(){
+		
+	}
+	private function create_order_from_product(){
+
+	}
+	private function get_confirmation_url(WC_Order $order){
+		return $order->get_checkout_order_received_url();
 	}
 
 	private function load_dependencies(){

@@ -16,8 +16,12 @@ class WC_Buyte_Mobile_Payments_Widget{
 		if($this->display_cart()){
 			add_action('woocommerce_after_cart', array($this, 'render_cart'), 20);
 		}
-		if($this->display_checkout()){
-			add_filter('woocommerce_order_button_html', array($this, 'render_checkout'), 10, 2);
+		if($checkout_location = $this->display_checkout()){
+			if($checkout_location === WC_Buyte_Mobile_Payments_Config::CHECKOUT_LOCATION_BEFORE_FORM){
+				add_action('woocommerce_before_checkout_form', array($this, 'render_checkout'), 20);
+			}else if($checkout_location === WC_Buyte_Mobile_Payments_Config::CHECKOUT_LOCATION_AFTER_FORM){
+				add_action('woocommerce_review_order_after_payment', array($this, 'render_checkout'), 20);
+			}
 		}
 	}
 
@@ -91,7 +95,7 @@ class WC_Buyte_Mobile_Payments_Widget{
 				$this->output_options($options),
 				esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__))),
 				array(
-					'redirect-url' => $this->get_redirect_url($product->get_id())
+					'product_id' => $product->get_id()
 				)
 			);
 		}
@@ -100,19 +104,15 @@ class WC_Buyte_Mobile_Payments_Widget{
 		$options = $this->get_cart_options();
 		$this->render(
 			$this->output_options($options),
-			esc_url(plugins_url('assets/js/cart_page.js', dirname(__FILE__))),
-			array(
-				'redirect-url' => $this->get_redirect_url()
-			)
+			esc_url(plugins_url('assets/js/cart_page.js', dirname(__FILE__)))
 		);
 	}
-
-	public function render_checkout($html){
-		$this->render_cart();
-		return $html;
+	public function render_checkout(){
+		$options = $this->get_cart_options();
+		$this->render($this->output_options($options));
 	}
 
-	public function render($output_options = '', $page_js, $widget_data = array()){
+	public function render($output_options = '', $page_js = '', $widget_data = array()){
 		$public_key = $this->get_public_key();
 		if(!$public_key){
 			return;
@@ -140,7 +140,7 @@ class WC_Buyte_Mobile_Payments_Widget{
 	}
 
 	private function display_checkout(){
-		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_option(WC_Buyte_Mobile_Payments_Config::CONFIG_DISPLAY_CHECKOUT) === 'yes';
+		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_option(WC_Buyte_Mobile_Payments_Config::CONFIG_DISPLAY_CHECKOUT);
 	}
 	private function display_product(){
 		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_option(WC_Buyte_Mobile_Payments_Config::CONFIG_DISPLAY_PRODUCT) === 'yes';

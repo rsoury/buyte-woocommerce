@@ -20,6 +20,12 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
     const LOG_LEVEL_FATAL = 6;
     const LOG_LEVEL_OFF = 7;
 
+    // Checkout Page Locations
+    const CHECKOUT_LOCATION_BEFORE_FORM = 'checkout_location_before_form';
+    const CHECKOUT_LOCATION_AFTER_FORM = 'checkout_location_after_form';
+    const CHECKOUT_LOCATION_OFF = 'checkout_location_off';
+
+
 	public $WC_Buyte_Mobile_Payments;
 
     public $id = 'buyte';
@@ -90,9 +96,14 @@ class WC_Buyte_Mobile_Payments_Config extends WC_Settings_API{
 			),
 			self::CONFIG_DISPLAY_CHECKOUT => array(
                 'title' => __('Display on Checkout Page', 'woocommerce'),
-                'type' => 'checkbox',
+                'type' => 'select',
                 'desc_tip' => __('Enables the display of Buyte\'s Apple Pay Widget on the Checkout Page', 'woocommerce'),
-                'default' => 'yes'
+                'default' => self::CHECKOUT_LOCATION_BEFORE_FORM,
+                'options' => array(
+                    self::CHECKOUT_LOCATION_BEFORE_FORM => 'Before Checkout Form',
+                    self::CHECKOUT_LOCATION_AFTER_FORM => 'After Checkout Form',
+                    self::CHECKOUT_LOCATION_OFF => 'Off (Will not display on checkout page)'
+                )
 			),
 			self::CONFIG_DISPLAY_CART => array(
                 'title' => __('Display on Cart Page', 'woocommerce'),

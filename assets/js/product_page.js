@@ -17,6 +17,8 @@
 	});
 	$( ".single_variation_wrap" )
 		.on( "show_variation", function( event, variation ){
+			console.log(variation);
+
 		    var $script = $('script.buyte-mobile-payment');
 		    var name = $script.attr('data-item-wc-product-name');
 		    var attributes = '';
@@ -33,6 +35,8 @@
 		    });
 
 		    window.Buyte('reload');
+
+		    buyte_success_endpoint = buyte_original_success_endpoint + '&variation_id=' + variation.variation_id;
 		    
 		    BuyteEnabled = true;
 			toggleBuyte(BuyteEnabled);
