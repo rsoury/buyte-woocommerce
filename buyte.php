@@ -4,7 +4,7 @@
  * Plugin Name:       Buyte - Apple Pay and Google Pay in a single install
  * Plugin URI:        https://wordpress.org/plugins/buyte-woocommerce-plugin/
  * Description:       Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.
- * Version:           1.0.0
+ * Version:           0.1.0
  * Author:            Buyte
  * Author URI:        https://www.buytecheckout.com/
  * License:           GPL-2.0+
@@ -12,7 +12,7 @@
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  *
  *
- * @version  1.0.0
+ * @version  0.1.0
  * @package  Buyte - Apple Pay and Google Pay in a single install
  * @author   Buyte
  */
@@ -29,7 +29,7 @@ if(!WC_Buyte::is_woocommerce_active()){
 class WC_Buyte{
 
 	/* version number */
-	const VERSION = '1.0.0';
+	const VERSION = '0.1.0';
 
 	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
@@ -96,7 +96,15 @@ class WC_Buyte{
 
     public function basename(){
     	return plugin_basename(__FILE__);
-    }
+	}
+
+	public function debug_log($log){
+		if ( is_array( $log ) || is_object( $log ) ) {
+			error_log( print_r( $log, true ) );
+		} else {
+			error_log( $log );
+		}
+	}
 
     public static function instance() {
 		if ( is_null( self::$instance ) ) {
@@ -144,6 +152,7 @@ class WC_Buyte{
 	private static function is_wc_version_gte_3_0() {
 		return self::get_wc_version() && version_compare( self::get_wc_version(), '3.0', '>=' );
 	}
+	
 }
 
 function WC_Buyte() {

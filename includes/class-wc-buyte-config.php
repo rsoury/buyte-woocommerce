@@ -1,6 +1,12 @@
 <?php
 
-class WC_Buyte_Config extends WC_Settings_API{
+defined( 'ABSPATH' ) || exit;
+
+if ( class_exists( 'WC_Buyte_Config', false ) ) {
+	return new WC_Buyte_Config();
+}
+
+class WC_Buyte_Config extends WC_Settings_Page{
 
 	// Admin Setting Keys
 	const CONFIG_ENABLED = 'enabled';
@@ -30,42 +36,29 @@ class WC_Buyte_Config extends WC_Settings_API{
 
 	public $WC_Buyte;
 
-    public static $id = 'buyte';
-    public $form_fields;
-    public $settings_title = 'Buyte Settings';
-    public $settings_description = 'Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.';
+    protected $id = 'buyte';
+    protected $label = 'Buyte';
+    public $settings_description = 'Offer your customers Apple Pay and Google Pay through a widget that sits on your website. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.';
     public $settings_webite = 'https://www.buytecheckout.com/';
 
-    public static $config_level = self::LOG_LEVEL_ALL;
+    public static $config_log_level = self::LOG_LEVEL_ALL;
     public static $logger;
 
 	public function __construct(WC_Buyte $WC_Buyte){
 		$this->WC_Buyte = $WC_Buyte;
-        $this->form_fields = $this->get_settings();
 	}
 
 	public function init(){
-		add_filter( 'woocommerce_settings_tabs_array', array($this, 'add_settings_tab'), 50 );
-        add_action( 'woocommerce_settings_tabs_settings_tab_' . $this->id, array($this, 'settings_tab') );
-        //save admin options
-        add_action( 'woocommerce_update_options_settings_tab_' . $this->id, array($this, 'process_admin_options') );
+        add_filter( 'woocommerce_get_settings_pages', array($this, 'add_settings_page'), 10, 2 );
         // Plugin settings link
-        add_filter( 'plugin_action_links_' . $this->WC_Buyte->basename(), array($this, 'plugin_settings_link') );
+        // add_filter( 'plugin_action_links_' . $this->WC_Buyte->basename(), array($this, 'plugin_settings_link') );
 	}
 
-	public function settings_tab(){
-        $admin_option_js = esc_url(plugins_url('assets/js/admin_options.js', dirname(__FILE__)));
-        $admin_options_css = esc_url(plugins_url('assets/css/admin.css', dirname(__FILE__)));
-
-        include plugin_dir_path( __FILE__ ) . '/view/admin/settings.php';
-	}
-    public function process_admin_options(){
-        $result = parent::process_admin_options();
-
-        self::$config_level = $this->get_option(self::CONFIG_LOGGING_LEVEL);
-
-        return $result;
+    public function add_settings_page( $settings ) {
+        array_push($settings, $this);
+        return $settings;
     }
+
 	public function get_settings(){
 		$settings = array(
 			self::CONFIG_ENABLED => array(
@@ -78,19 +71,19 @@ class WC_Buyte_Config extends WC_Settings_API{
 			self::CONFIG_WIDGET_ID => array(
 				'title' => __('Checkout Widget ID', 'woocommerce'),
                 'type' => 'text',
-                'description' => sprintf(__('Get your Checkout Widget ID from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $settings_webite),
+                'description' => sprintf(__('Get your Checkout Widget ID from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $this->settings_webite),
                 'default' => ''
 			),
 			self::CONFIG_PUBLIC_KEY => array(
 				'title' => __('Public Key', 'woocommerce'),
                 'type' => 'text',
-                'description' => sprintf(__('Get your Public Key from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $settings_webite),
+                'description' => sprintf(__('Get your Public Key from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $this->settings_webite),
                 'default' => ''
 			),
 			self::CONFIG_SECRET_KEY => array(
 				'title' => __('Secret Key', 'woocommerce'),
                 'type' => 'text',
-                'description' => sprintf(__('Get your Secret Key from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $settings_webite),
+                'description' => sprintf(__('Get your Secret Key from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $this->settings_webite),
                 'default' => ''
             ),
             self::CONFIG_DARK_BACKGROUND => array(
@@ -137,15 +130,28 @@ class WC_Buyte_Config extends WC_Settings_API{
                 'desc_tip' => __('Enables the display of Buyte\'s Apple Pay Widget on the Product Page', 'woocommerce'),
                 'default' => 'yes'
             ),
-		);
+        );
+        
+        $settings = apply_filters( 'woocommerce_buyte_settings', $settings );
 
-		return $settings;
-	}
-
-	public function add_settings_tab( $settings_tabs ) {
-        $settings_tabs['settings_tab_buyte'] = 'Buyte';
-        return $settings_tabs;
+		return apply_filters( 'woocommerce_get_settings_' . $this->id, $settings );;
     }
+    
+    /**
+	 * Output the settings.
+	 */
+	public function output() {
+		$settings = $this->get_settings();
+		WC_Admin_Settings::output_fields( $settings );
+	}
+	/**
+	 * Save settings.
+	 */
+	public function save() {
+        $settings = $this->get_settings();
+        self::$config_log_level = $this->get_option(self::CONFIG_LOGGING_LEVEL);
+		WC_Admin_Settings::save_fields( $settings );
+	}
 
     public function get_public_key(){
         return $this->get_option(self::CONFIG_PUBLIC_KEY);
@@ -194,6 +200,6 @@ class WC_Buyte_Config extends WC_Settings_API{
         }
 
         //log the message into file
-        self::$logger->add(self::$id, $message);
+        self::$logger->add('buyte-checkout-woocommerce-plugin', $message);
     }
 }
