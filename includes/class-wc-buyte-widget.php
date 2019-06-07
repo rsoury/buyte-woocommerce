@@ -27,20 +27,11 @@ class WC_Buyte_Widget{
 
 	public function start_options(){
 		$options = array();
-		$options['publicKey'] = "";
-		$options['widgetId'] = "";
-		return $options;
-	}
-	public function get_shipping_method_options(){
-		$options = array('data-shipping-required' => null);
-		$shipping_methods = $this->WC_Buyte->WC_Buyte_Config->get_shipping_methods();
-		if(sizeof($shipping_methods) === 1){
-			$options['data-shipping-method'] = sprintf("%s, %s, %s", $shipping_methods[0]->title, $shipping_methods[0]->price, $shipping_methods[0]->desc);
-		}else{
-			foreach($shipping_methods as $index => $method){
-				$options['data-shipping-method-' . ($index + 1)] = sprintf("%s, %s, %s", $method->title, $method->price, $method->desc);
-			}
-		}
+		$options['public_key'] = $this->get_public_key();
+		$options['widget_id'] = $this->get_widget_id();
+		$options['options'] = array(
+			'dark' => $this->is_on_dark_background()
+		);
 		return $options;
 	}
 
@@ -48,48 +39,36 @@ class WC_Buyte_Widget{
 		$WC_Session = WC()->session;
 		$cart = $WC_Session->get('cart');
 		$options = $this->start_options();
-		$total_amount = 0;
 
-		if(!empty($cart)){
-			if(sizeof($cart) === 1){
-				$product = wc_get_product($cart[0]['product_id']);
-				if(!$product->is_virtual() && !$product->is_downloadable()){
-					$options = array_merge($options, $this->get_shipping_method_options());
-				}
-				$options['data-item-wc-product-name'] = $product->get_name();
-				$options['data-item-label'] = $product->get_name() . ($cart[0]['quantity'] > 1 ? sprintf(' x%s', $cart[0]['quantity']) : '');
-				$options['data-item-amount'] = number_format($product->get_price(), 2);
-				$total_amount += $product->get_price() * ((int) $cart[0]['quantity']);
-			}else{
-				$options = array_merge($options, $this->get_shipping_method_options());
-				$count = 1;
-				foreach($cart as $item){
-					$product = wc_get_product($item['product_id']);
-					$options['data-item-' . $count . '-wc-product-name'] = $product->get_name();
-					$options['data-item-' . $count . '-label'] = $product->get_name() . ($item['quantity'] > 1 ? sprintf(' x%s', $item['quantity']) : '');
-					$options['data-item-' . $count . '-amount'] = number_format($product->get_price(), 2);
-					$total_amount += $product->get_price() * ((int) $item['quantity']);
-					$count++;
-				}
+		$items = array();
+		if(!$cart->is_empty()){
+			// TODO: Get taxes
+			// TODO: Get discounts (coupons/discounts/etc.)
+			foreach($cart as $item) {
+				$product = wc_get_product($item['product_id']);
+				array_push($items, array(
+					'name' => $product->get_name(),
+					'amount' => number_format($product->get_price(), 2),
+					'quantity' => $item['quantity']
+				));
 			}
 		}
-		$options['data-total-amount'] = number_format($total_amount, 2);
+		$options['items'] = $items;
 
 		return $options;
 	}
 
 	// Consider variation id here.
 	public function render_product(){
+		$options = $this->start_options();
 		$product = wc_get_product();
 		if($product->is_purchasable()){
-			$options = $this->start_options();
-			if(!$product->is_virtual() && !$product->is_downloadable()){
-				$options = array_merge($options, $this->get_shipping_method_options());
-			}
-			$options['data-item-wc-product-name'] = $product->get_name();
-			$options['data-item-label'] = $product->get_name();
-			$options['data-item-amount'] = number_format($product->get_price(), 2);
-			$options['data-total-amount'] = number_format($product->get_price(), 2);
+			$options['items'] = array(
+				array(
+					'name' => $product->get_name(),
+					'amount' => number_format($product->get_price(), 2),
+				)
+			);
 			$this->render(
 				$this->output_options($options),
 				esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__))),
@@ -112,19 +91,15 @@ class WC_Buyte_Widget{
 	}
 
 	public function render($output_options = '', $page_js = '', $widget_data = array()){
-		$public_key = $this->get_public_key();
-		if(!$public_key){
+		$buyte_settings = (object) $output_options;
+		if(!$buyte_settings->public_key){
 			return;
 		}
 		include plugin_dir_path( __FILE__ ) . '/view/widget/display.php';
 	}
 
 	public function output_options($options){
-		$output = '';
-		foreach($options as $key => $value){
-			$output .= $key . ($value !== null ? '="' . $value . '"' : '') . ' '; 
-		}
-		return $output;
+		return $options;
 	}
 
 	public function get_redirect_url($product_id = ''){
@@ -136,6 +111,24 @@ class WC_Buyte_Widget{
 			return;
 		}
 		return $this->WC_Buyte->WC_Buyte_Config->get_public_key();
+	}
+	private function get_secret_key(){
+		if(!$this->WC_Buyte->WC_Buyte_Config->is_enabled()){
+			return;
+		}
+		return $this->WC_Buyte->WC_Buyte_Config->get_secret_key();
+	}
+	private function get_widget_id(){
+		if(!$this->WC_Buyte->WC_Buyte_Config->is_enabled()){
+			return;
+		}
+		return $this->WC_Buyte->WC_Buyte_Config->get_widget_id();
+	}
+	private function is_on_dark_background(){
+		if(!$this->WC_Buyte->WC_Buyte_Config->is_enabled()){
+			return;
+		}
+		return $this->WC_Buyte->WC_Buyte_Config->is_on_dark_background();
 	}
 
 	private function display_checkout(){

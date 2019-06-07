@@ -12,7 +12,6 @@ class WC_Buyte_Config extends WC_Settings_API{
 	const CONFIG_DISPLAY_CHECKOUT = 'display_checkout';
 	const CONFIG_DISPLAY_CART = 'display_cart';
 	const CONFIG_DISPLAY_PRODUCT = 'display_product';
-    const CONFIG_SHIPPING_METHODS = 'shipping_methods';
 
 	//Log levels
     const LOG_LEVEL_ALL = 1;
@@ -137,11 +136,7 @@ class WC_Buyte_Config extends WC_Settings_API{
                 'type' => 'checkbox',
                 'desc_tip' => __('Enables the display of Buyte\'s Apple Pay Widget on the Product Page', 'woocommerce'),
                 'default' => 'yes'
-			),
-            self::CONFIG_SHIPPING_METHODS => array(
-                'title' => __('Enter your shipping methods', 'woocommerce'),
-                'desc_tip' => __('These are shipping methods that will appear in your Apple Pay payment sheet', 'woocommerce')
-            )
+            ),
 		);
 
 		return $settings;
@@ -166,14 +161,6 @@ class WC_Buyte_Config extends WC_Settings_API{
     }
     public function is_enabled(){
         return $this->get_option(self::CONFIG_ENABLED) === 'yes';
-    }
-
-    public function get_shipping_methods(){
-        $shipping_methods = json_decode($this->get_option(self::CONFIG_SHIPPING_METHODS));
-        if($shipping_methods){
-            return $shipping_methods;
-        }
-        return array();
     }
 
     public function plugin_settings_link($links){
