@@ -34,12 +34,11 @@ class WC_Buyte{
 	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
 
-	public $WC_Buyte_Config;
 	public $WC_Buyte_Widget;
 
 
 	public function __construct() {
-		add_action( 'plugins_loaded', array( $this, 'initialize' ) );
+		add_action( 'plugins_loaded', array( $this, 'initialize' ), 100 );
 	}
 
 	public function initialize(){
@@ -48,7 +47,7 @@ class WC_Buyte{
 		// Set the custom order number on the new order.  we hook into wp_insert_post for orders which are created
 		// add_action( 'wp_insert_post', array( $this, 'on_order_creation' ), 10, 2 );
 		add_action( 'parse_request', array($this, 'process_buyte_actions') );
-
+		
 		// Handle Settings Tab
 		$this->handle_config();
 
@@ -131,7 +130,6 @@ class WC_Buyte{
 		$this->WC_Buyte_Config = new WC_Buyte_Config($this);
 		$this->WC_Buyte_Config->init();
 	}
-
 	private function handle_widget(){
 		$this->WC_Buyte_Widget = new WC_Buyte_Widget($this);
 		$this->WC_Buyte_Widget->init_hooks();

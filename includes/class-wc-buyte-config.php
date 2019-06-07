@@ -1,12 +1,6 @@
 <?php
 
-defined( 'ABSPATH' ) || exit;
-
-if ( class_exists( 'WC_Buyte_Config', false ) ) {
-	return new WC_Buyte_Config();
-}
-
-class WC_Buyte_Config extends WC_Settings_Page{
+class WC_Buyte_Config extends WC_Settings_API {
 
 	// Admin Setting Keys
 	const CONFIG_ENABLED = 'enabled';
@@ -33,29 +27,27 @@ class WC_Buyte_Config extends WC_Settings_Page{
     const CHECKOUT_LOCATION_AFTER_FORM = 'checkout_location_after_form';
     const CHECKOUT_LOCATION_OFF = 'checkout_location_off';
 
+    public $WC_Buyte;
 
-	public $WC_Buyte;
-
-    protected $id = 'buyte';
-    protected $label = 'Buyte';
+    public $id = 'buyte';
+    public $label = 'Buyte';
     public $settings_description = 'Offer your customers Apple Pay and Google Pay through a widget that sits on your website. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.';
     public $settings_webite = 'https://www.buytecheckout.com/';
 
     public static $config_log_level = self::LOG_LEVEL_ALL;
     public static $logger;
 
-	public function __construct(WC_Buyte $WC_Buyte){
+    public function __construct(WC_Buyte $WC_Buyte){
 		$this->WC_Buyte = $WC_Buyte;
-	}
-
-	public function init(){
-        add_filter( 'woocommerce_get_settings_pages', array($this, 'add_settings_page'), 10, 2 );
-        // Plugin settings link
-        // add_filter( 'plugin_action_links_' . $this->WC_Buyte->basename(), array($this, 'plugin_settings_link') );
-	}
-
-    public function add_settings_page( $settings ) {
-        array_push($settings, $this);
+    }
+    
+    public function init(){
+        add_filter( 'woocommerce_get_settings_pages', array($this, 'init_settings_page'), 10, 2 );
+    }
+    
+    public function init_settings_page( $settings ) {
+		include plugin_dir_path( __FILE__ ) . 'class-wc-buyte-settings.php';
+        $settings[] = new WC_Buyte_Settings($this->WC_Buyte);
         return $settings;
     }
 
@@ -132,26 +124,8 @@ class WC_Buyte_Config extends WC_Settings_Page{
             ),
         );
         
-        $settings = apply_filters( 'woocommerce_buyte_settings', $settings );
-
-		return apply_filters( 'woocommerce_get_settings_' . $this->id, $settings );;
+        return $settings;
     }
-    
-    /**
-	 * Output the settings.
-	 */
-	public function output() {
-		$settings = $this->get_settings();
-		WC_Admin_Settings::output_fields( $settings );
-	}
-	/**
-	 * Save settings.
-	 */
-	public function save() {
-        $settings = $this->get_settings();
-        self::$config_log_level = $this->get_option(self::CONFIG_LOGGING_LEVEL);
-		WC_Admin_Settings::save_fields( $settings );
-	}
 
     public function get_public_key(){
         return $this->get_option(self::CONFIG_PUBLIC_KEY);
