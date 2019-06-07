@@ -3,18 +3,18 @@
 /**
  * Plugin Name:       Buyte - Apple Pay WooCommerce
  * Plugin URI:        https://wordpress.org/plugins/buyte-woocommerce-plugin/
- * Description:       Buyte provides a widget that allows you to implement Apple Pay with a simple snippet and have it exposed across all browsers and devices. No longer are your customers forced to use Safari to pay with Apple Pay. Buyte also provides full support for integrations, which means a faulty SSL certificate won't block your streamlined mobile payment method.
+ * Description:       Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.
  * Version:           1.0.0
- * Author:            Buyte Mobile Payments
- * Author URI:        https://buyte.co/
+ * Author:            Buyte
+ * Author URI:        https://www.buytecheckout.com/
  * License:           GPL-2.0+
- * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Github URI:        https://github.com/rsoury/buyte-woocommerce
+ * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  *
  *
  * @version  1.0.0
- * @package  Buyte Mobile Payments
- * @author   Buyte Mobile Payments
+ * @package  Buyte - Apple Pay and Google Pay in a single install
+ * @author   Buyte
  */
 
 // If this file is called directly, abort.
@@ -22,20 +22,20 @@ if (!defined('WPINC')) {
     die;
 }
 
-if(!WC_Buyte_Mobile_Payments::is_woocommerce_active()){
+if(!WC_Buyte::is_woocommerce_active()){
 	return;
 }
 
-class WC_Buyte_Mobile_Payments{
+class WC_Buyte{
 
 	/* version number */
 	const VERSION = '1.0.0';
 
-	/** @var \WC_Buyte_Mobile_Payments single instance of this plugin */
+	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
 
-	public $WC_Buyte_Mobile_Payments_Config;
-	public $WC_Buyte_Mobile_Payments_Widget;
+	public $WC_Buyte_Config;
+	public $WC_Buyte_Widget;
 
 
 	public function __construct() {
@@ -86,7 +86,7 @@ class WC_Buyte_Mobile_Payments{
         		}
         		break;
     		case 'cart':
-    			$options = $this->WC_Buyte_Mobile_Payments_Widget->get_cart_options();
+    			$options = $this->WC_Buyte_Widget->get_cart_options();
     			echo json_encode($options);
             default:
             	break;
@@ -106,27 +106,27 @@ class WC_Buyte_Mobile_Payments{
 	}
 
 	private function create_order_from_cart(){
-		
+		// ...
 	}
 	private function create_order_from_product(){
-
+		// ...
 	}
 	private function get_confirmation_url(WC_Order $order){
 		return $order->get_checkout_order_received_url();
 	}
 
 	private function load_dependencies(){
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-mobile-payments-config.php';
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-mobile-payments-widget.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-config.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-widget.php';
 	}
 	private function handle_config(){
-		$this->WC_Buyte_Mobile_Payments_Config = new WC_Buyte_Mobile_Payments_Config($this);
-		$this->WC_Buyte_Mobile_Payments_Config->init();
+		$this->WC_Buyte_Config = new WC_Buyte_Config($this);
+		$this->WC_Buyte_Config->init();
 	}
 
 	private function handle_widget(){
-		$this->WC_Buyte_Mobile_Payments_Widget = new WC_Buyte_Mobile_Payments_Widget($this);
-		$this->WC_Buyte_Mobile_Payments_Widget->init_hooks();
+		$this->WC_Buyte_Widget = new WC_Buyte_Widget($this);
+		$this->WC_Buyte_Widget->init_hooks();
 	}
 
 	public static function is_woocommerce_active(){
@@ -146,8 +146,8 @@ class WC_Buyte_Mobile_Payments{
 	}
 }
 
-function wc_buyte_mobile_payments() {
-	return WC_Buyte_Mobile_Payments::instance();
+function WC_Buyte() {
+	return WC_Buyte::instance();
 }
 
-$GLOBALS['wc_buyte_mobile_payments'] = wc_buyte_mobile_payments();
+$GLOBALS['WC_Buyte'] = WC_Buyte();

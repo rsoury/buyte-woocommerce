@@ -1,12 +1,12 @@
 <?php
 
-class WC_Buyte_Mobile_Payments_Widget{
+class WC_Buyte_Widget{
 
-	private $WC_Buyte_Mobile_Payments;
+	private $WC_Buyte;
 
-    public function __construct(WC_Buyte_Mobile_Payments $WC_Buyte_Mobile_Payments)
+    public function __construct(WC_Buyte $WC_Buyte)
     {
-        $this->WC_Buyte_Mobile_Payments = $WC_Buyte_Mobile_Payments;
+        $this->WC_Buyte = $WC_Buyte;
     }
 
 	public function init_hooks(){
@@ -17,9 +17,9 @@ class WC_Buyte_Mobile_Payments_Widget{
 			add_action('woocommerce_after_cart', array($this, 'render_cart'), 20);
 		}
 		if($checkout_location = $this->display_checkout()){
-			if($checkout_location === WC_Buyte_Mobile_Payments_Config::CHECKOUT_LOCATION_BEFORE_FORM){
+			if($checkout_location === WC_Buyte_Config::CHECKOUT_LOCATION_BEFORE_FORM){
 				add_action('woocommerce_before_checkout_form', array($this, 'render_checkout'), 20);
-			}else if($checkout_location === WC_Buyte_Mobile_Payments_Config::CHECKOUT_LOCATION_AFTER_FORM){
+			}else if($checkout_location === WC_Buyte_Config::CHECKOUT_LOCATION_AFTER_FORM){
 				add_action('woocommerce_review_order_after_payment', array($this, 'render_checkout'), 20);
 			}
 		}
@@ -27,14 +27,13 @@ class WC_Buyte_Mobile_Payments_Widget{
 
 	public function start_options(){
 		$options = array();
-		$options['data-country'] = wc_get_base_location()['country'];
-		$options['data-currency'] = get_woocommerce_currency();
-		$options['data-total-text'] = get_bloginfo('name');
+		$options['publicKey'] = "";
+		$options['widgetId'] = "";
 		return $options;
 	}
 	public function get_shipping_method_options(){
 		$options = array('data-shipping-required' => null);
-		$shipping_methods = $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_shipping_methods();
+		$shipping_methods = $this->WC_Buyte->WC_Buyte_Config->get_shipping_methods();
 		if(sizeof($shipping_methods) === 1){
 			$options['data-shipping-method'] = sprintf("%s, %s, %s", $shipping_methods[0]->title, $shipping_methods[0]->price, $shipping_methods[0]->desc);
 		}else{
@@ -133,19 +132,19 @@ class WC_Buyte_Mobile_Payments_Widget{
 	}
 
 	private function get_public_key(){
-		if(!$this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->is_enabled()){
+		if(!$this->WC_Buyte->WC_Buyte_Config->is_enabled()){
 			return;
 		}
-		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_public_key();
+		return $this->WC_Buyte->WC_Buyte_Config->get_public_key();
 	}
 
 	private function display_checkout(){
-		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_option(WC_Buyte_Mobile_Payments_Config::CONFIG_DISPLAY_CHECKOUT);
+		return $this->WC_Buyte->WC_Buyte_Config->get_option(WC_Buyte_Config::CONFIG_DISPLAY_CHECKOUT);
 	}
 	private function display_product(){
-		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_option(WC_Buyte_Mobile_Payments_Config::CONFIG_DISPLAY_PRODUCT) === 'yes';
+		return $this->WC_Buyte->WC_Buyte_Config->get_option(WC_Buyte_Config::CONFIG_DISPLAY_PRODUCT) === 'yes';
 	}
 	private function display_cart(){
-		return $this->WC_Buyte_Mobile_Payments->WC_Buyte_Mobile_Payments_Config->get_option(WC_Buyte_Mobile_Payments_Config::CONFIG_DISPLAY_CART) === 'yes';
+		return $this->WC_Buyte->WC_Buyte_Config->get_option(WC_Buyte_Config::CONFIG_DISPLAY_CART) === 'yes';
 	}
 }
