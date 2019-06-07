@@ -27,9 +27,9 @@ class WC_Buyte_Widget{
 
 	public function start_options(){
 		$options = array();
-		$options['public_key'] = $this->get_public_key();
-		$options['widget_id'] = $this->get_widget_id();
-		$options['options'] = array(
+		$options['publicKey'] = $this->get_public_key();
+		$options['widgetId'] = $this->get_widget_id();
+		$options['options'] = (object) array(
 			'dark' => $this->is_on_dark_background()
 		);
 		return $options;
@@ -46,7 +46,7 @@ class WC_Buyte_Widget{
 			// TODO: Get discounts (coupons/discounts/etc.)
 			foreach($cart as $item) {
 				$product = wc_get_product($item['product_id']);
-				array_push($items, array(
+				array_push($items, (object) array(
 					'name' => $product->get_name(),
 					'amount' => number_format($product->get_price(), 2),
 					'quantity' => $item['quantity']
@@ -64,7 +64,7 @@ class WC_Buyte_Widget{
 		$product = wc_get_product();
 		if($product->is_purchasable()){
 			$options['items'] = array(
-				array(
+				(object) array(
 					'name' => $product->get_name(),
 					'amount' => number_format($product->get_price(), 2),
 				)
@@ -91,10 +91,10 @@ class WC_Buyte_Widget{
 	}
 
 	public function render($output_options = '', $page_js = '', $widget_data = array()){
-		$buyte_settings = (object) $output_options;
-		if(!$buyte_settings->public_key){
+		if(!$output_options['public_key']){
 			return;
 		}
+		$buyte_settings = json_encode($output_options);
 		include plugin_dir_path( __FILE__ ) . '/view/widget/display.php';
 	}
 

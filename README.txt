@@ -1,17 +1,17 @@
-=== Buyte Mobile Payments Plugin for WooCommerce ===
-Contributors: buyte
-Tags: buyte mobile payments woocommerce, buyte mobile payments module for woocommerce, buyte woocommerce addon , buyte payment gateway for woocommerce, buyte for woocommerce, buyte payment gateway for wordpress, mobile payments, apple pay, buyte woocommerce plugin, apple pay woocommerce plugin
+=== Buyte Plugin for WooCommerce ===
+Contributors: Ryan Soury
+Tags: buyte, fast checkout, mobile-first, mobile checkout, apple pay, google pay, digital wallet, buyte checkout
 Stable tag: 1.0.0
 License: GPLv2 or later License http://www.gnu.org/licenses/gpl-2.0.html
 
-Buyte WooCommerce Plugin enables customer to checkout from the Checkout, Cart and Product pages using Apple Pay and other supported mobile/accelerated payment methods.
+Buyte WooCommerce Plugin enables customer to checkout using Apple Pay and Google Pay from the Product, Cart and Checkout pages.
 
 == Description ==
-In just few clicks, you can start offering Apple Pay on your Woocommerce Store.
+Accelerate your customer experience with a bite sized checkout
 
-**What is Buyte Mobile Payments?**
-Buyte provides a widget that allows you to implement Apple Pay and have it exposed across all browsers and devices. No longer are your customers force to use Safari to pay with Apple Pay.
-We also provide full support for our integrations, which means a faulty SSL certificate won't block your streamlined mobile payment method.
+**What is Buyte Checkout?**
+Buyte is small widget that sits on your website that loads widely used digital wallets, hassle free.
+Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet. Don't force credit card forms and user login forms on your new visitors.
 
 == Installation ==
 
@@ -19,7 +19,7 @@ We also provide full support for our integrations, which means a faulty SSL cert
 *   Login to your WordPress Admin area
 *   Go to "Plugins > Add New" from the left hand menu
 *   In the search box type "Buyte Apple Pay"
-* From the search result you will see "Buyte - Apple Pay WooCommerce Plugin" click on "Install Now" to install the plugin
+* From the search result you will see "Buyte - Apple Pay and Google Pay in a single install" click on "Install Now" to install the plugin
 * A popup window will ask you to confirm your wish to install the Plugin.
 
 = Note: =
@@ -39,12 +39,15 @@ If this is the first time you've installed a WordPress Plugin, you may need to e
 = Configure the plugin =
 To configure the plugin, go to __WooCommerce > Settings__ from the left hand menu, then click "Buyte" from the top tab menu.
 
-* __Enable/Disable__ - check the box to enable Buyte - Apple Pay WooCommerce Plugin.
+* __Enable/Disable__ - check the box to enable Buyte.
+* __Checkout Widget ID__   - enter your Buyte Checkout Widget Id.
 * __Public Key__   - enter your Buyte Public Key.
+* __Secret Key__   - enter your Buyte Secret Key.
+* __Dark Background__ - check wether to render buttons on dark background
 * __Log Message level__   - select the logging level.
-* __Display on Checkout Page__ - Enables Buyte's Apple Pay widget on Checkout Page
-* __Display on Cart Page__ - Enables Buyte's Apple Pay widget on Cart Page
-* __Display on Product Page__ - Enables Buyte's Apple Pay widget on Product Page
+* __Display on Checkout Page__ - Enables Buyte Checkout widget on Checkout Page
+* __Display on Cart Page__ - Enables Buyte Checkout widget on Cart Page
+* __Display on Product Page__ - Enables Buyte Checkout widget on Product Page
 * Click on __Save Changes__ for the changes you made to be effected.
 
 == Changelog ==
