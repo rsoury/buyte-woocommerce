@@ -1,7 +1,6 @@
 <!-- Buyte Checkout Widget - For more info visit: https://buytecheckout.com/ -->
 <div id="buyte-checkout-widget"></div>
 <script type="text/javascript" src="https://js.buytecheckout.com/"></script>
-<!-- <?php echo $output_options; ?> -->
 <?php if($page_js): ?>
 	<script type="text/javascript" src="<?php echo $page_js; ?>"></script>
 <?php endif; ?>
