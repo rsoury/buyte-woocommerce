@@ -1,5 +1,7 @@
 <?php
 
+defined( 'ABSPATH' ) || exit;
+
 class WC_Buyte_Widget{
 
 	private $WC_Buyte;

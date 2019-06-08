@@ -1,5 +1,7 @@
 <?php
 
+defined( 'ABSPATH' ) || exit;
+
 class WC_Buyte_Settings extends WC_Settings_Page {
 
     public $WC_Buyte;
@@ -33,10 +35,13 @@ class WC_Buyte_Settings extends WC_Settings_Page {
 	 * @param string $current_section Section being shown.
 	 * @return array
 	 */
-	public function get_settings(){
-		$settings = $this->WC_Buyte->WC_Buyte_Config->get_settings();
-        $settings = apply_filters( 'woocommerce_buyte_settings', $settings );
-		return apply_filters( 'woocommerce_get_settings_' . $this->id, $settings );
+	public function get_settings( $current_section = '' ) {
+		$settings = array();
+
+		if ( '' === $current_section ) {
+			$settings = $this->WC_Buyte->WC_Buyte_Config->get_settings();
+		}
+		return apply_filters( 'woocommerce_get_settings_' . $this->id, $settings, $current_section );
 	}
 
     /**

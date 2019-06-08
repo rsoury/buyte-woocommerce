@@ -1,5 +1,7 @@
 <?php
 
+defined( 'ABSPATH' ) || exit;
+
 class WC_Buyte_Config extends WC_Settings_API {
 
 	// Admin Setting Keys
@@ -41,12 +43,12 @@ class WC_Buyte_Config extends WC_Settings_API {
     public function __construct(WC_Buyte $WC_Buyte){
 		$this->WC_Buyte = $WC_Buyte;
     }
-    
+
     public function init(){
         add_filter( 'woocommerce_get_settings_pages', array($this, 'init_settings_page'), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
     }
-    
+
     public function init_settings_page( $settings ) {
 		include plugin_dir_path( __FILE__ ) . 'class-wc-buyte-settings.php';
         $settings[] = new WC_Buyte_Settings($this->WC_Buyte);
@@ -62,9 +64,9 @@ class WC_Buyte_Config extends WC_Settings_API {
 	public function get_settings(){
 		$settings = array(
             array(
+                'id'    => $this->id . '_title',
                 'title' => __( $this->label . ' settings', 'woocommerce' ),
                 'type'  => 'title',
-                'id'    => $this->id . '_title',
                 'desc' => sprintf(__('<a href="%s" target="_blank" rel="noopener noreferrer">Don\'t have your Buyte account and credentials?</a>', 'woocommerce'), $this->settings_webite)
             ),
 			 array(
@@ -104,22 +106,6 @@ class WC_Buyte_Config extends WC_Settings_API {
                 'default' => 'no'
             ),
 			array(
-                'id' => self::CONFIG_LOGGING_LEVEL,
-				'title' => __('Log Message level', 'woocommerce'),
-                'desc' => __('The log level will be used to log the messages. The orders are: ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF.'),
-                'type' => 'select',
-                'default' => self::LOG_LEVEL_ALL,
-                'options' => array(
-                    self::LOG_LEVEL_ALL => 'All messages',
-                    self::LOG_LEVEL_DEBUG => 'Debug (and above)',
-                    self::LOG_LEVEL_INFO => 'Info (and above)',
-                    self::LOG_LEVEL_WARN => 'Warn (and above)',
-                    self::LOG_LEVEL_ERROR => 'Error (and above)',
-                    self::LOG_LEVEL_FATAL => 'Fatal (and above)',
-                    self::LOG_LEVEL_OFF => 'Off (No message will be logged)'
-                )
-			),
-			array(
                 'id' => self::CONFIG_DISPLAY_CHECKOUT,
                 'title' => __('Display on Checkout Page', 'woocommerce'),
                 'type' => 'select',
@@ -144,6 +130,26 @@ class WC_Buyte_Config extends WC_Settings_API {
                 'type' => 'checkbox',
                 'desc_tip' => __('Enables the display of Buyte\'s Checkout Widget on the Product Page', 'woocommerce'),
                 'default' => 'yes'
+            ),
+            array(
+                'id' => self::CONFIG_LOGGING_LEVEL,
+				'title' => __('Log Message level', 'woocommerce'),
+                'desc' => __('The log level will be used to log the messages. The orders are: ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF.'),
+                'type' => 'select',
+                'default' => self::LOG_LEVEL_INFO,
+                'options' => array(
+                    self::LOG_LEVEL_ALL => 'All messages',
+                    self::LOG_LEVEL_DEBUG => 'Debug (and above)',
+                    self::LOG_LEVEL_INFO => 'Info (and above)',
+                    self::LOG_LEVEL_WARN => 'Warn (and above)',
+                    self::LOG_LEVEL_ERROR => 'Error (and above)',
+                    self::LOG_LEVEL_FATAL => 'Fatal (and above)',
+                    self::LOG_LEVEL_OFF => 'Off (No message will be logged)'
+                )
+			),
+            array(
+                'id'   => $this->id . '_settings',
+                'type' => 'sectionend',
             ),
         );
 
