@@ -1,10 +1,5 @@
-#woocommerce_buyte_shipping_methods{
-	display: none;
-}
-#shipping-methods-table thead tr td{
-	font-weight: bold;
-}
-#shipping-methods-table thead tr td div{
-	font-size: 11px;
-	font-weight: 400;
+span.description{
+	display: block;
+	margin: 5px 0;
+	font-size: 14px;
 }

@@ -33,6 +33,7 @@ class WC_Buyte_Config extends WC_Settings_API {
     public $label = 'Buyte';
     public $settings_description = 'Offer your customers Apple Pay and Google Pay through a widget that sits on your website. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.';
     public $settings_webite = 'https://www.buytecheckout.com/';
+    public $settings_dashboard = 'https://dashboard.buytecheckout.com/';
 
     public static $config_log_level = self::LOG_LEVEL_ALL;
     public static $logger;
@@ -43,6 +44,7 @@ class WC_Buyte_Config extends WC_Settings_API {
     
     public function init(){
         add_filter( 'woocommerce_get_settings_pages', array($this, 'init_settings_page'), 10, 2 );
+        add_action( 'admin_enqueue_scripts', array( $this, 'load_admin_scripts' ) );
     }
     
     public function init_settings_page( $settings ) {
@@ -51,40 +53,58 @@ class WC_Buyte_Config extends WC_Settings_API {
         return $settings;
     }
 
+    public function load_admin_scripts() {
+        $admin_css_url = plugin_url( __FILE__ ) . '../assets/css/admin.css';
+        wp_register_style( 'buyte-admin-style', $admin_css_url );
+		wp_enqueue_style( 'buyte-admin-style' );
+	}
+
 	public function get_settings(){
 		$settings = array(
-			self::CONFIG_ENABLED => array(
+            array(
+                'title' => __( $this->label . ' settings', 'woocommerce' ),
+                'type'  => 'title',
+                'id'    => $this->id . '_title',
+                'desc' => sprintf(__('<a href="%s" target="_blank" rel="noopener noreferrer">Don\'t have your Buyte account and credentials?</a>', 'woocommerce'), $this->settings_webite)
+            ),
+			 array(
+                'id' => self::CONFIG_ENABLED,
 				'title' => __('Enable/Disable', 'woocommerce'),
                 'label' => __('Enable Buyte Checkout', 'woocommerce'),
                 'type' => 'checkbox',
                 'desc' => '',
                 'default' => 'no'
 			),
-			self::CONFIG_WIDGET_ID => array(
+			 array(
+                'id' => self::CONFIG_WIDGET_ID,
 				'title' => __('Checkout Widget ID', 'woocommerce'),
                 'type' => 'text',
-                'description' => sprintf(__('Get your Checkout Widget ID from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $this->settings_webite),
+                'description' => sprintf(__('Can be obtained by created a Buyte Checkout in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
                 'default' => ''
 			),
-			self::CONFIG_PUBLIC_KEY => array(
+			array(
+                'id' => self::CONFIG_PUBLIC_KEY,
 				'title' => __('Public Key', 'woocommerce'),
                 'type' => 'text',
-                'description' => sprintf(__('Get your Public Key from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $this->settings_webite),
+                'description' => sprintf(__('Get your Public Key in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
                 'default' => ''
 			),
-			self::CONFIG_SECRET_KEY => array(
+			array(
+                'id' => self::CONFIG_SECRET_KEY,
 				'title' => __('Secret Key', 'woocommerce'),
                 'type' => 'text',
-                'description' => sprintf(__('Get your Secret Key from <a href="%s" target="_blank">Buyte</a>', 'woocommerce'), $this->settings_webite),
+                'description' => sprintf(__('Get your Public Key in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
                 'default' => ''
             ),
-            self::CONFIG_DARK_BACKGROUND => array(
+            array(
+                'id' => self::CONFIG_DARK_BACKGROUND,
                 'title' => __('Is On Dark Background?', 'woocommerce'),
                 'type' => 'checkbox',
                 'desc' => __('Set true if background is dark. Will render light digital wallet buttons.', 'woocommerce'),
                 'default' => 'no'
             ),
-			self::CONFIG_LOGGING_LEVEL => array(
+			array(
+                'id' => self::CONFIG_LOGGING_LEVEL,
 				'title' => __('Log Message level', 'woocommerce'),
                 'desc' => __('The log level will be used to log the messages. The orders are: ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF.'),
                 'type' => 'select',
@@ -99,10 +119,11 @@ class WC_Buyte_Config extends WC_Settings_API {
                     self::LOG_LEVEL_OFF => 'Off (No message will be logged)'
                 )
 			),
-			self::CONFIG_DISPLAY_CHECKOUT => array(
+			array(
+                'id' => self::CONFIG_DISPLAY_CHECKOUT,
                 'title' => __('Display on Checkout Page', 'woocommerce'),
                 'type' => 'select',
-                'desc_tip' => __('Enables the display of Buyte\'s Apple Pay Widget on the Checkout Page', 'woocommerce'),
+                'desc' => __('Enables the display of Buyte\'s Checkout Widget on the Checkout Page', 'woocommerce'),
                 'default' => self::CHECKOUT_LOCATION_BEFORE_FORM,
                 'options' => array(
                     self::CHECKOUT_LOCATION_BEFORE_FORM => 'Before Checkout Form',
@@ -110,20 +131,22 @@ class WC_Buyte_Config extends WC_Settings_API {
                     self::CHECKOUT_LOCATION_OFF => 'Off (Will not display on checkout page)'
                 )
 			),
-			self::CONFIG_DISPLAY_CART => array(
+		    array(
+                'id' => self::CONFIG_DISPLAY_CART,
                 'title' => __('Display on Cart Page', 'woocommerce'),
                 'type' => 'checkbox',
-                'desc_tip' => __('Enables the display of Buyte\'s Apple Pay Widget on the Cart Page', 'woocommerce'),
+                'desc_tip' => __('Enables the display of Buyte\'s Checkout Widget on the Cart Page', 'woocommerce'),
                 'default' => 'yes'
 			),
-			self::CONFIG_DISPLAY_PRODUCT => array(
+			array(
+                'id' => self::CONFIG_DISPLAY_PRODUCT,
                 'title' => __('Display on Product Page', 'woocommerce'),
                 'type' => 'checkbox',
-                'desc_tip' => __('Enables the display of Buyte\'s Apple Pay Widget on the Product Page', 'woocommerce'),
+                'desc_tip' => __('Enables the display of Buyte\'s Checkout Widget on the Product Page', 'woocommerce'),
                 'default' => 'yes'
             ),
         );
-        
+
         return $settings;
     }
 
@@ -141,13 +164,6 @@ class WC_Buyte_Config extends WC_Settings_API {
     }
     public function is_enabled(){
         return $this->get_option(self::CONFIG_ENABLED) === 'yes';
-    }
-
-    public function plugin_settings_link($links){
-        $settings_url = "admin.php?page=wc-settings&tab=settings_tab_buyte";
-        $settings_link = sprintf(__('<a href="%s">Settings</a>', 'woocommerce'), $settings_url); 
-        array_unshift($links, $settings_link);
-        return $links;
     }
 
     /**

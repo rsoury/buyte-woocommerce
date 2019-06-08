@@ -15,11 +15,29 @@ class WC_Buyte_Settings extends WC_Settings_Page {
 		parent::__construct();
 	}
 
-	public function get_settings(){
-        $settings = apply_filters( 'woocommerce_buyte_settings', $this->WC_Buyte->WC_Buyte_Config->get_settings() );
+	/**
+	 * Get sections.
+	 *
+	 * @return array
+	 */
+	public function get_sections() {
+		$sections = array(
+			'' => __( 'Buyte settings', 'woocommerce' ),
+		);
+		return apply_filters( 'woocommerce_get_sections_' . $this->id, $sections );
+	}
 
+	/**
+	 * Get settings array.
+	 *
+	 * @param string $current_section Section being shown.
+	 * @return array
+	 */
+	public function get_settings(){
+		$settings = $this->WC_Buyte->WC_Buyte_Config->get_settings();
+        $settings = apply_filters( 'woocommerce_buyte_settings', $settings );
 		return apply_filters( 'woocommerce_get_settings_' . $this->id, $settings );
-    }
+	}
     
     /**
 	 * Output the settings.
