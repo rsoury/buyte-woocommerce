@@ -54,7 +54,7 @@ class WC_Buyte_Config extends WC_Settings_API {
     }
 
     public function load_admin_scripts() {
-        $admin_css_url = plugin_url( __FILE__ ) . '../assets/css/admin.css';
+        $admin_css_url = plugin_dir_url( __FILE__ ) . '../assets/css/admin.css';
         wp_register_style( 'buyte-admin-style', $admin_css_url );
 		wp_enqueue_style( 'buyte-admin-style' );
 	}
@@ -148,6 +148,14 @@ class WC_Buyte_Config extends WC_Settings_API {
         );
 
         return $settings;
+    }
+
+    /**
+     * A hook called when settings page saves
+     *
+     */
+    public function save() {
+        self::$config_level = $this->get_option(self::CONFIG_LOGGING_LEVEL);
     }
 
     public function get_public_key(){

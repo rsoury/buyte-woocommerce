@@ -38,7 +38,7 @@ class WC_Buyte_Settings extends WC_Settings_Page {
         $settings = apply_filters( 'woocommerce_buyte_settings', $settings );
 		return apply_filters( 'woocommerce_get_settings_' . $this->id, $settings );
 	}
-    
+
     /**
 	 * Output the settings.
 	 */
@@ -50,7 +50,10 @@ class WC_Buyte_Settings extends WC_Settings_Page {
 	 * Save settings.
 	 */
 	public function save() {
-        $settings = $this->get_settings();
+		$settings = $this->get_settings();
 		WC_Admin_Settings::save_fields( $settings );
+		if( property_exists( $this->WC_Buyte->WC_Buyte_Config, 'save' ) ) {
+			$this->WC_Buyte->WC_Buyte_Config->save();
+		}
 	}
 }
