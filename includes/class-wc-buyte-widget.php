@@ -4,6 +4,11 @@ defined( 'ABSPATH' ) || exit;
 
 class WC_Buyte_Widget{
 
+	const PROPERTY_PUBLIC_KEY = "publicKey";
+	const PROPERTY_WIDGET_ID = "widgetId";
+	const PROPERTY_ITEMS = "items";
+	const PROPERTY_OPTIONS = "options";
+
 	private $WC_Buyte;
 
     public function __construct(WC_Buyte $WC_Buyte)
@@ -32,9 +37,9 @@ class WC_Buyte_Widget{
 
 	public function start_options(){
 		$options = array();
-		$options['publicKey'] = $this->get_public_key();
-		$options['widgetId'] = $this->get_widget_id();
-		$options['options'] = (object) array(
+		$options[self::PROPERTY_PUBLIC_KEY] = $this->get_public_key();
+		$options[self::PROPERTY_WIDGET_ID] = $this->get_widget_id();
+		$options[self::PROPERTY_OPTIONS] = (object) array(
 			'dark' => $this->is_on_dark_background()
 		);
 		return $options;
@@ -58,7 +63,7 @@ class WC_Buyte_Widget{
 				));
 			}
 		}
-		$options['items'] = $items;
+		$options[self::PROPERTY_ITEMS] = $items;
 
 		return $options;
 	}
@@ -68,7 +73,7 @@ class WC_Buyte_Widget{
 		$options = $this->start_options();
 		$product = wc_get_product();
 		if($product->is_purchasable()){
-			$options['items'] = array(
+			$options[self::PROPERTY_ITEMS] = array(
 				(object) array(
 					'name' => $product->get_name(),
 					'amount' => number_format($product->get_price(), 2),
@@ -99,11 +104,12 @@ class WC_Buyte_Widget{
 	}
 
 	public function render($output_options = '', $page_js = '', $widget_data = array()){
-		if(!$output_options['public_key']){
+		if(array_key_exists(self::PROPERTY_PUBLIC_KEY, $output_options) ? !$output_options[self::PROPERTY_PUBLIC_KEY] : true){
+			WC_Buyte_Config::log("Could not render. ". self::PROPERTY_PUBLIC_KEY ." does not exist. \n" . print_r($output_options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 			return;
 		}
 		$buyte_settings = json_encode($output_options);
-		include plugin_dir_path( __FILE__ ) . '/view/widget/display.php';
+		include plugin_dir_path( __FILE__ ) . 'view/widget/display.php';
 	}
 
 	public function output_options($options){
