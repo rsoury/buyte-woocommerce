@@ -97,14 +97,6 @@ class WC_Buyte{
     	return plugin_basename(__FILE__);
 	}
 
-	public function debug_log($log){
-		if ( is_array( $log ) || is_object( $log ) ) {
-			error_log( print_r( $log, true ) );
-		} else {
-			error_log( $log );
-		}
-	}
-
     public static function instance() {
 		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
@@ -143,14 +135,21 @@ class WC_Buyte{
 		}
 
 		return in_array( 'woocommerce/woocommerce.php', $active_plugins ) || array_key_exists( 'woocommerce/woocommerce.php', $active_plugins );
-    }
+	}
+	public static function debug_log($log){
+		if ( is_array( $log ) || is_object( $log ) ) {
+			error_log( print_r( $log, true ) );
+		} else {
+			error_log( $log );
+		}
+	}
+
     private static function get_wc_version() {
 		return defined( 'WC_VERSION' ) && WC_VERSION ? WC_VERSION : null;
 	}
 	private static function is_wc_version_gte_3_0() {
 		return self::get_wc_version() && version_compare( self::get_wc_version(), '3.0', '>=' );
 	}
-	
 }
 
 function WC_Buyte() {

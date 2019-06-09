@@ -2,7 +2,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class WC_Buyte_Config extends WC_Settings_API {
+class WC_Buyte_Config {
 
 	// Admin Setting Keys
 	const CONFIG_ENABLED = 'enabled';
@@ -161,7 +161,7 @@ class WC_Buyte_Config extends WC_Settings_API {
      *
      */
     public function save() {
-        self::$config_level = $this->get_option(self::CONFIG_LOGGING_LEVEL);
+        self::$config_log_level = $this->get_option(self::CONFIG_LOGGING_LEVEL);
     }
 
     public function get_public_key(){
@@ -180,6 +180,10 @@ class WC_Buyte_Config extends WC_Settings_API {
         return $this->get_option(self::CONFIG_ENABLED) === 'yes';
     }
 
+    public function get_option( $option_name, $default = '' ) {
+        return WC_Admin_Settings::get_option($option_name, $default);
+    }
+
     /**
      * Log the message when necessary
      *
@@ -188,9 +192,11 @@ class WC_Buyte_Config extends WC_Settings_API {
      */
     public static function log($message, $log_level = self::LOG_LEVEL_ALL)
     {
-        if (self::$config_log_level > $log_level) {
-            //log the message with log_level higher than the default value only
-            return;
+        if(self::$config_log_level !== self::LOG_LEVEL_ALL){
+            if (self::$config_log_level > $log_level) {
+                //log the message with log_level higher than the default value only only if log level isn't all messages.
+                return;
+            }
         }
 
         if (is_array($message) || is_object($message)) {

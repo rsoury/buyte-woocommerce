@@ -10,8 +10,12 @@
 			"/?p=buyte&route=payment&action_type=success<?php echo array_key_exists('product_id', $widget_data) ? '&product_id=' . $widget_data['product_id'] : ''; ?>";
 		var buyte_success_endpoint = buyte_original_success_endpoint;
 		var rawBuyteSettings = "<?php echo $buyte_settings; ?>";
+		var buyteSettings = {};
+		try{
+			buyteSettings = JSON.parse(rawBuyteSettings);
+		}catch(e){}
 		console.log(rawBuyteSettings);
-		var buyteSettings = JSON.parse(rawBuyteSettings);
+		console.log(buyteSettings);
 		window.Buyte("load", buyteSettings);
 		window.Buyte("onPayment", function(paymentToken) {
 			$.ajax({

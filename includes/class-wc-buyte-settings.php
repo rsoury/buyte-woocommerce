@@ -51,14 +51,15 @@ class WC_Buyte_Settings extends WC_Settings_Page {
 		$settings = $this->get_settings();
 		WC_Admin_Settings::output_fields( $settings );
 	}
+
 	/**
 	 * Save settings.
 	 */
 	public function save() {
 		$settings = $this->get_settings();
 		WC_Admin_Settings::save_fields( $settings );
-		if( property_exists( $this->WC_Buyte->WC_Buyte_Config, 'save' ) ) {
-			$this->WC_Buyte->WC_Buyte_Config->save();
+		if( method_exists( $this->WC_Buyte->WC_Buyte_Config, 'save' ) ) {
+			$this->WC_Buyte->WC_Buyte_Config->save( $settings );
 		}
 	}
 }

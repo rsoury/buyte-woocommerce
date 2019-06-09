@@ -12,10 +12,13 @@ class WC_Buyte_Widget{
     }
 
 	public function init_hooks(){
+		WC_Buyte_Config::log("Initiating Buyte widget WP Hooks...", WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		if($this->display_product()){
-			add_action('woocommerce_after_add_to_cart_button', array($this, 'render_product'), 30);
+			WC_Buyte_Config::log("About to render on product page...", WC_Buyte_Config::LOG_LEVEL_DEBUG);
+			add_action('woocommerce_after_add_to_cart_button', array($this, 'render_product'), 10);
 		}
 		if($this->display_cart()){
+			WC_Buyte_Config::log("About to render on cart page...", WC_Buyte_Config::LOG_LEVEL_DEBUG);
 			add_action('woocommerce_after_cart', array($this, 'render_cart'), 20);
 		}
 		if($checkout_location = $this->display_checkout()){
@@ -71,6 +74,7 @@ class WC_Buyte_Widget{
 					'amount' => number_format($product->get_price(), 2),
 				)
 			);
+			WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 			$this->render(
 				$this->output_options($options),
 				esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__))),
@@ -82,6 +86,7 @@ class WC_Buyte_Widget{
 	}
 	public function render_cart(){
 		$options = $this->get_cart_options();
+		WC_Buyte_Config::log("Rendering on cart page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		$this->render(
 			$this->output_options($options),
 			esc_url(plugins_url('assets/js/cart_page.js', dirname(__FILE__)))
@@ -89,6 +94,7 @@ class WC_Buyte_Widget{
 	}
 	public function render_checkout(){
 		$options = $this->get_cart_options();
+		WC_Buyte_Config::log("Rendering on checkout page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		$this->render($this->output_options($options));
 	}
 
@@ -134,12 +140,21 @@ class WC_Buyte_Widget{
 	}
 
 	private function display_checkout(){
+		if(!$this->WC_Buyte->WC_Buyte_Config->is_enabled()){
+			return;
+		}
 		return $this->WC_Buyte->WC_Buyte_Config->get_option(WC_Buyte_Config::CONFIG_DISPLAY_CHECKOUT);
 	}
 	private function display_product(){
+		if(!$this->WC_Buyte->WC_Buyte_Config->is_enabled()){
+			return;
+		}
 		return $this->WC_Buyte->WC_Buyte_Config->get_option(WC_Buyte_Config::CONFIG_DISPLAY_PRODUCT) === 'yes';
 	}
 	private function display_cart(){
+		if(!$this->WC_Buyte->WC_Buyte_Config->is_enabled()){
+			return;
+		}
 		return $this->WC_Buyte->WC_Buyte_Config->get_option(WC_Buyte_Config::CONFIG_DISPLAY_CART) === 'yes';
 	}
 }
