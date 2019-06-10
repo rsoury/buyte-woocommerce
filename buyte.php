@@ -69,10 +69,6 @@ class WC_Buyte{
             return false;
         }
 
-        if (isset($query_vars['route']) == false || $query_vars['route'] != 'payment') {
-            return false;
-        }
-        
         switch ($query_vars['action_type']) {
         	case 'success':
         		if(isset($query_vars['product_id']) == false){

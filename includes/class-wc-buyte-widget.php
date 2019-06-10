@@ -24,7 +24,7 @@ class WC_Buyte_Widget{
 		}
 		if($this->display_cart()){
 			WC_Buyte_Config::log("About to render on cart page...", WC_Buyte_Config::LOG_LEVEL_DEBUG);
-			add_action('woocommerce_after_cart', array($this, 'render_cart'), 20);
+			add_action('woocommerce_proceed_to_checkout', array($this, 'render_cart'), 20);
 		}
 		if($checkout_location = $this->display_checkout()){
 			if($checkout_location === WC_Buyte_Config::CHECKOUT_LOCATION_BEFORE_FORM){
@@ -51,14 +51,14 @@ class WC_Buyte_Widget{
 		$options = $this->start_options();
 
 		$items = array();
-		if(!$cart->is_empty()){
+		if(!empty($cart)){
 			// TODO: Get taxes
 			// TODO: Get discounts (coupons/discounts/etc.)
 			foreach($cart as $item) {
 				$product = wc_get_product($item['product_id']);
 				array_push($items, (object) array(
 					'name' => $product->get_name(),
-					'amount' => number_format($product->get_price(), 2),
+					'amount' => $this->format_price($product->get_price()),
 					'quantity' => $item['quantity']
 				));
 			}
@@ -76,7 +76,7 @@ class WC_Buyte_Widget{
 			$options[self::PROPERTY_ITEMS] = array(
 				(object) array(
 					'name' => $product->get_name(),
-					'amount' => number_format($product->get_price(), 2),
+					'amount' => $this->format_price($product->get_price()),
 				)
 			);
 			WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
@@ -118,6 +118,10 @@ class WC_Buyte_Widget{
 
 	public function get_redirect_url($product_id = ''){
 		return '/?p=buyte&route=payment&action_type=success' . ($product_id ? '&product_id=' . $product_id : '');
+	}
+
+	public function format_price($price) {
+		return (int) ($price * 100);
 	}
 
 	private function get_public_key(){
