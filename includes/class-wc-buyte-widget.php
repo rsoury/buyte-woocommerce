@@ -41,7 +41,7 @@ class WC_Buyte_Widget{
 		$options[self::PROPERTY_WIDGET_ID] = $this->get_widget_id();
 		$options[self::PROPERTY_OPTIONS] = (object) array(
 			'dark' => $this->is_on_dark_background(),
-			'enabled' => false
+			'enabled' => true
 		);
 		return $options;
 	}
@@ -57,9 +57,10 @@ class WC_Buyte_Widget{
 			// TODO: Get discounts (coupons/discounts/etc.)
 			foreach($cart as $item) {
 				$product = wc_get_product($item['product_id']);
+				$variation = $item['variation_id'] ? new WC_Product_Variation($item['variation_id']) : null;
 				array_push($items, (object) array(
-					'name' => $product->get_name(),
-					'amount' => $this->format_price($product->get_price()),
+					'name' => $variation ? $variation->get_name() : $product->get_name(),
+					'amount' => $this->format_price($variation ? $variation->get_price() : $product->get_price()),
 					'quantity' => $item['quantity']
 				));
 			}
@@ -72,6 +73,9 @@ class WC_Buyte_Widget{
 	// Consider variation id here.
 	public function render_product(){
 		$options = $this->start_options();
+		// Disable by default for product page.
+		$options[self::PROPERTY_OPTIONS]->enabled = false;
+
 		$product = wc_get_product();
 		if($product->is_purchasable()){
 			$options[self::PROPERTY_ITEMS] = array(
