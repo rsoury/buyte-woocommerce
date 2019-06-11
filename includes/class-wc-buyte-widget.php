@@ -40,7 +40,8 @@ class WC_Buyte_Widget{
 		$options[self::PROPERTY_PUBLIC_KEY] = $this->get_public_key();
 		$options[self::PROPERTY_WIDGET_ID] = $this->get_widget_id();
 		$options[self::PROPERTY_OPTIONS] = (object) array(
-			'dark' => $this->is_on_dark_background()
+			'dark' => $this->is_on_dark_background(),
+			'enabled' => false
 		);
 		return $options;
 	}
