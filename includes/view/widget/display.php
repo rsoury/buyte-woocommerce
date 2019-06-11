@@ -7,8 +7,8 @@
 <script type="text/javascript">
 	(function($) {
 		window.buyte_original_success_endpoint =
-			"/?p=buyte&route=payment&action_type=success<?php echo array_key_exists('product_id', $widget_data) ? '&product_id=' . $widget_data['product_id'] : ''; ?>";
-		window.buyte_success_endpoint = window.buyte_success_endpoint || buyte_original_success_endpoint;
+			"/?p=buyte&action_type=success<?php echo array_key_exists('product_id', $widget_data) ? '&product_id=' . $widget_data['product_id'] : ''; ?>";
+		window.buyte_success_endpoint = window.buyte_success_endpoint || window.buyte_original_success_endpoint;
 
 		var rawBuyteSettings = '<?php echo $buyte_settings; ?>';
 		var buyteSettings = {};

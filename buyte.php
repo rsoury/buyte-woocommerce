@@ -63,28 +63,30 @@ class WC_Buyte{
      */
     public function process_buyte_actions($wp)
     {
-        $query_vars = $wp->query_vars;
+		$query_vars = $wp->query_vars;
+		self::debug_log($query_vars); // TODO: Can't find query_var action_type
 
-        if (isset($query_vars['p']) == false || $query_vars['p'] != "buyte") {
+        if ((isset($query_vars['p']) ? $query_vars['p'] != "buyte" : true) || !isset($query_vars['action_type'])) {
             return false;
         }
 
         switch ($query_vars['action_type']) {
-        	case 'success':
-        		if(isset($query_vars['product_id']) == false){
-        			$order = $this->create_order_from_cart();
-        		}else{
-    				$order = $this->create_order_from_product();
-        		}
-        		if(isset($order)){
-        			echo $this->get_confirmation_url($order);
-        		}
-        		break;
-    		case 'cart':
-    			$options = $this->WC_Buyte_Widget->get_cart_options();
-    			echo json_encode($options);
+            case 'success':
+                if (isset($query_vars['product_id']) == false) {
+                    $order = $this->create_order_from_cart();
+                } else {
+                    $order = $this->create_order_from_product();
+                }
+                if (isset($order)) {
+                    echo $this->get_confirmation_url($order);
+                }
+                break;
+            case 'cart':
+                $options = $this->WC_Buyte_Widget->get_cart_options();
+                echo json_encode($options);
+				break;
             default:
-            	break;
+                break;
         }
         exit;
     }
@@ -100,6 +102,9 @@ class WC_Buyte{
 		return self::$instance;
 	}
 
+	private function create_order(){
+		// ...
+	}
 	private function create_order_from_cart(){
 		// ...
 	}
