@@ -24,13 +24,13 @@ class WC_Buyte_Widget{
 		}
 		if($this->display_cart()){
 			// WC_Buyte_Config::log("About to render on cart page...", WC_Buyte_Config::LOG_LEVEL_DEBUG);
-			add_action('woocommerce_proceed_to_checkout', array($this, 'render_cart'), 20);
+			add_action('woocommerce_proceed_to_checkout', array($this, 'render_cart'), 10);
 		}
 		if($checkout_location = $this->display_checkout()){
 			if($checkout_location === WC_Buyte_Config::CHECKOUT_LOCATION_BEFORE_FORM){
-				add_action('woocommerce_before_checkout_form', array($this, 'render_checkout'), 20);
+				add_action('woocommerce_checkout_before_customer_details', array($this, 'render_checkout'), 10);
 			}else if($checkout_location === WC_Buyte_Config::CHECKOUT_LOCATION_AFTER_FORM){
-				add_action('woocommerce_review_order_after_payment', array($this, 'render_checkout'), 20);
+				add_action('woocommerce_review_order_after_payment', array($this, 'render_checkout'), 10);
 			}
 		}
 	}
@@ -60,7 +60,7 @@ class WC_Buyte_Widget{
 				$variation = $item['variation_id'] ? new WC_Product_Variation($item['variation_id']) : null;
 				array_push($items, (object) array(
 					'name' => $variation ? $variation->get_name() : $product->get_name(),
-					'amount' => $this->format_price($variation ? $variation->get_price() : $product->get_price()),
+					'amount' => WC_Buyte_Util::get_amount($variation ? $variation->get_price() : $product->get_price()),
 					'quantity' => $item['quantity']
 				));
 			}
@@ -81,7 +81,7 @@ class WC_Buyte_Widget{
 			$options[self::PROPERTY_ITEMS] = array(
 				(object) array(
 					'name' => $product->get_name(),
-					'amount' => $this->format_price($product->get_price()),
+					'amount' => WC_Buyte_Util::get_amount($product->get_price()),
 				)
 			);
 			WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
@@ -118,10 +118,6 @@ class WC_Buyte_Widget{
 
 	public function output_options($options){
 		return $options;
-	}
-
-	public function format_price($price) {
-		return (int) ($price * 100);
 	}
 
 	public function config_invalid() {
