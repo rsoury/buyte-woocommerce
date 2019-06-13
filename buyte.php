@@ -30,10 +30,19 @@ class WC_Buyte{
 
 	/* version number */
 	const VERSION = '0.1.0';
+	/* nonce name */
+	const NONCE_NAME = 'buyte-ajax-next-nonce';
+	/* ajax */
+	const AJAX_SUCCESS = 'buyte_success';
+	const AJAX_CART = 'buyte_cart';
+	/* api */
+	// const API_BASE_URL = 'https://api.buytecheckout.com/v1/';
+	const API_BASE_URL = 'https://3371887b.au.ngrok.io/v1/';
 
 	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
 
+	public $WC_Buyte_Config;
 	public $WC_Buyte_Widget;
 
 
@@ -44,10 +53,12 @@ class WC_Buyte{
 	public function initialize(){
 		$this->load_dependencies();
 
-		// Set the custom order number on the new order.  we hook into wp_insert_post for orders which are created
-		// add_action( 'wp_insert_post', array( $this, 'on_order_creation' ), 10, 2 );
-		add_action( 'parse_request', array($this, 'process_buyte_actions') );
-		
+		// Setup admin ajax endpoints
+		add_action( 'wp_ajax_buyte_success', array( $this, 'buyte_success' ) );
+		add_action( 'wp_ajax_nopriv_buyte_success', array( $this, 'buyte_success' ) );
+		add_action( 'wp_ajax_buyte_cart', array( $this, 'buyte_cart' ) );
+		add_action( 'wp_ajax_nopriv_buyte_cart', array( $this, 'buyte_cart' ) );
+
 		// Handle Settings Tab
 		$this->handle_config();
 
@@ -55,41 +66,43 @@ class WC_Buyte{
 		$this->handle_widget();
 	}
 
-	 /**
-     * This is the function to process the custom defined endpoint
-     *
-     * @param $wp
-     * @return bool
-     */
-    public function process_buyte_actions($wp)
-    {
-		$query_vars = $wp->query_vars;
-		self::debug_log($query_vars); // TODO: Can't find query_var action_type
+	public function buyte_success() {
+		// check nonce
+		// $nonce = isset($_POST['nextNonce']) ? $_POST['nextNonce'] : "";
+		// if ( ! wp_verify_nonce( $nonce, self::NONCE_NAME ) ) {
+		// 	header("HTTP/1.1 401 Unauthorized");
+   		// 	exit;
+		// }
 
-        if ((isset($query_vars['p']) ? $query_vars['p'] != "buyte" : true) || !isset($query_vars['action_type'])) {
-            return false;
-        }
+		// Retrieve HTTP method
+		// $method = filter_input(INPUT_SERVER, 'REQUEST_METHOD', FILTER_SANITIZE_STRING);
+		// Retrieve JSON payload
+		$data = json_decode(file_get_contents('php://input'));
+		if(!$data){
+			$data = json_decode(json_encode($_POST));
+		}
+		self::debug_log($data);
+		$charge = $this->create_charge($data->paymentToken);
+		self::debug_log($charge);
 
-        switch ($query_vars['action_type']) {
-            case 'success':
-                if (isset($query_vars['product_id']) == false) {
-                    $order = $this->create_order_from_cart();
-                } else {
-                    $order = $this->create_order_from_product();
-                }
-                if (isset($order)) {
-                    echo $this->get_confirmation_url($order);
-                }
-                break;
-            case 'cart':
-                $options = $this->WC_Buyte_Widget->get_cart_options();
-                echo json_encode($options);
-				break;
-            default:
-                break;
-        }
-        exit;
-    }
+		wp_send_json(array(  // send JSON back
+			'charge' => $charge
+		));
+		exit;
+	}
+
+	public function buyte_cart() {
+		// check nonce
+		// $nonce = isset($_GET['nextNonce']) ? $_GET['nextNonce'] : "";
+		// if ( ! wp_verify_nonce( $nonce, self::NONCE_NAME ) ) {
+		// 	header("HTTP/1.1 401 Unauthorized");
+   		// 	exit;
+		// }
+
+		$options = $this->WC_Buyte_Widget->get_cart_options();
+		wp_send_json($options);
+		exit;
+	}
 
     public function basename(){
     	return plugin_basename(__FILE__);
@@ -113,6 +126,57 @@ class WC_Buyte{
 	}
 	private function get_confirmation_url(WC_Order $order){
 		return $order->get_checkout_order_received_url();
+	}
+
+	private function create_request($path, $body){
+		$data = json_encode($body);
+		if(!$data){
+			throw new Exception('Cannot encode Buyte request body.');
+		}
+		$url = self::API_BASE_URL . $path;
+		$headers = array(
+			'Content-Type' => 'application/json',
+			'Authorization' => 'Bearer ' . $this->WC_Buyte_Config->get_secret_key(),
+			'Client-Name' => 'Woocommerce',
+			'Client-Version' => $this->get_wc_version()
+		);
+		$args = array(
+			'headers' => $headers,
+			'body' => $data
+		);
+		return array(
+			'url' => $url,
+			'args' => $args
+		);
+	}
+	private function execute_request($request) {
+		$url = $request['url'];
+		$args = $request['args'];
+		$response = wp_remote_post($url, $args);
+		if(is_wp_error($response)){
+			$this->WC_Buyte_Config->log("Error on Request Execute", WC_Buyte_Config::LOG_LEVEL_FATAL);
+			$this->WC_Buyte_Config->log($response, WC_Buyte_Config::LOG_LEVEL_FATAL);
+			return;
+		}
+		$response_body = json_decode($response['body']);
+		return $response_body;
+	}
+	private function create_charge(object $paymentToken){
+		$request = $this->create_request('charges', array(
+			'source' => $paymentToken->id,
+			'amount' => (int) $paymentToken->amount,
+			'currency' => $paymentToken->currency
+		));
+		$this->WC_Buyte_Config->log("Attempting to charge Buyte Payment Token: " . $paymentToken->id, WC_Buyte_Config::LOG_LEVEL_INFO);
+		$this->WC_Buyte_Config->log($request, WC_Buyte_Config::LOG_LEVEL_DEBUG);
+		$response = $this->execute_request($request);
+		if(empty($response)){
+			$this->WC_Buyte_Config->log("Could not create charge", WC_Buyte_Config::LOG_LEVEL_FATAL);
+			throw new Exception("Could not create Charge");
+		}
+		$this->WC_Buyte_Config->log("Successfully created charge", WC_Buyte_Config::LOG_LEVEL_INFO);
+		$this->WC_Buyte_Config->log($response, WC_Buyte_Config::LOG_LEVEL_DEBUG);
+		return $response;
 	}
 
 	private function load_dependencies(){

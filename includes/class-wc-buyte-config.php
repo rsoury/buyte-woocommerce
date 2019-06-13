@@ -34,8 +34,8 @@ class WC_Buyte_Config {
     public $id = 'buyte';
     public $label = 'Buyte';
     public $settings_description = 'Offer your customers Apple Pay and Google Pay through a widget that sits on your website. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.';
-    public $settings_webite = 'https://www.buytecheckout.com/';
-    public $settings_dashboard = 'https://dashboard.buytecheckout.com/';
+    public $settings_webite = 'https://www.buytecheckout.com/?utm_source=woocommerce&utm_medium=plugin&utm_campaign=buyte';
+    public $settings_dashboard = 'https://dashboard.buytecheckout.com/?utm_source=woocommerce&utm_medium=plugin&utm_campaign=buyte';
 
     public static $config_log_level = self::LOG_LEVEL_ALL;
     public static $logger;

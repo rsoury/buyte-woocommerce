@@ -9,7 +9,7 @@
 		// This is last stored settings
 		var lastSettings = settings;
 		window.Buyte("onUpdate", function(settings) {
-			console.log(settings);
+			// console.log(settings);
 			lastSettings = settings;
 		});
 
@@ -58,13 +58,10 @@
 						}
 					]
 				};
-				console.log(updateSettings);
+				// console.log(updateSettings);
 				window.Buyte("update", updateSettings);
 
-				window.buyte_success_endpoint =
-					window.buyte_original_success_endpoint +
-					"&variation_id=" +
-					variation.variation_id;
+				window.buyte_product_variation(variation.variation_id);
 
 				window.Buyte("enable");
 			})
@@ -72,6 +69,7 @@
 				// Reset lastSettings but keep quantity and disable.
 				lastSettings = settings;
 				lastSettings.items[0].quantity = quantity;
+				window.buyte_product_variation();
 				window.Buyte("disable");
 			});
 	});

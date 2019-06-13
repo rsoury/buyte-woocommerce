@@ -1,4 +1,8 @@
 <!-- Buyte Checkout Widget - For more info visit: https://buytecheckout.com/ -->
+<?php
+	$ajaxurl = admin_url( 'admin-ajax.php' );
+	$nextNonce = wp_create_nonce( WC_Buyte::NONCE_NAME );
+?>
 <div id="buyte-checkout-widget"></div>
 <script type="text/javascript" src="https://js.buytecheckout.com/"></script>
 <?php if($page_js): ?>
@@ -6,9 +10,21 @@
 <?php endif; ?>
 <script type="text/javascript">
 	(function($) {
-		window.buyte_original_success_endpoint =
-			"/?p=buyte&action_type=success<?php echo array_key_exists('product_id', $widget_data) ? '&product_id=' . $widget_data['product_id'] : ''; ?>";
-		window.buyte_success_endpoint = window.buyte_success_endpoint || window.buyte_original_success_endpoint;
+		var params = {
+			action: "<?php echo WC_Buyte::AJAX_SUCCESS; ?>",
+			nextNonce: "<?php echo $nextNonce; ?>",
+		};
+		var productId = <?php echo array_key_exists('product_id', $widget_data) ? $widget_data['product_id'] : 0; ?>;
+		if(!!productId){
+			params.productId = productId;
+		}
+		window.buyte_product_variation = function(variationId){
+			if(!!variationId){
+				params.variationId = variationId;
+			}else{
+				delete params.variationId;
+			}
+		}
 
 		var rawBuyteSettings = '<?php echo $buyte_settings; ?>';
 		var buyteSettings = {};
@@ -17,17 +33,18 @@
 		}catch(e){}
 		window.Buyte("load", buyteSettings);
 		window.Buyte("onPayment", function(paymentToken) {
+			params.paymentToken = paymentToken;
+			console.log(params);
 			$.ajax({
-				url: window.buyte_success_endpoint,
+				url: "<?php echo $ajaxurl; ?>",
 				method: "POST",
-				data: {
-					paymentToken: paymentToken
-				},
+				data: params,
 				success: function(data) {
 					console.log(data);
 					// window.location.href = data;
 				},
 				error: function(e) {
+					// We want to either toast an error -- browser alerts might do for now, or redirect to an error page.
 					console.error(e);
 				}
 			});
