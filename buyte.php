@@ -36,8 +36,8 @@ class WC_Buyte{
 	const AJAX_SUCCESS = 'buyte_success';
 	const AJAX_CART = 'buyte_cart';
 	/* api */
-	// const API_BASE_URL = 'https://api.buytecheckout.com/v1/';
-	const API_BASE_URL = 'https://3371887b.au.ngrok.io/v1/';
+	const API_BASE_URL = 'https://api.buytecheckout.com/v1/';
+	// const API_BASE_URL = 'https://3371887b.au.ngrok.io/v1/';
 
 	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
@@ -81,9 +81,7 @@ class WC_Buyte{
 		if(!$data){
 			$data = json_decode(json_encode($_POST));
 		}
-		self::debug_log($data);
 		$charge = $this->create_charge($data->paymentToken);
-		self::debug_log($charge);
 
 		wp_send_json(array(  // send JSON back
 			'charge' => $charge
@@ -174,7 +172,7 @@ class WC_Buyte{
 			$this->WC_Buyte_Config->log("Could not create charge", WC_Buyte_Config::LOG_LEVEL_FATAL);
 			throw new Exception("Could not create Charge");
 		}
-		$this->WC_Buyte_Config->log("Successfully created charge", WC_Buyte_Config::LOG_LEVEL_INFO);
+		$this->WC_Buyte_Config->log("Successfully created charge: " . $response->id, WC_Buyte_Config::LOG_LEVEL_INFO);
 		$this->WC_Buyte_Config->log($response, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		return $response;
 	}
