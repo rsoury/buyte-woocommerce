@@ -278,6 +278,15 @@ class WC_Buyte{
 		update_post_meta( $order_id, '_buyte_payment_source_id', $payment_source_id );
 	}
 
+	/**
+	 * create_order
+	 *
+	 * Creates new Post Data to use with session cart to "natively" process checkout
+	 * Native WC checkout processing ensures security and compatibility.
+	 *
+	 * @param object $charge
+	 * @return void
+	 */
 	private function create_order($charge){
 		if(!property_exists($charge, 'id')){
 			$errMsg = "No Buyte charge Id";
@@ -397,6 +406,7 @@ class WC_Buyte{
 			'buyte_charge' => $charge->id,
 			'buyte_payment_source' => $charge->source->id,
 			'buyte_payment_type' => $payment_type,
+			'buyte_shipping_rate' => isset($charge->source->shippingMethod->rate) ? $charge->source->shippingMethod->rate : 0
 		);
 
 		WC_Buyte_Config::log("create_order: Post data set", WC_Buyte_Config::LOG_LEVEL_DEBUG);
@@ -416,14 +426,63 @@ class WC_Buyte{
 
 		return;
 	}
+	/**
+	 * set_shipping
+	 *
+	 * Set shipping rate in charge to cart totals if it exists.
+	 *
+	 * @param [type] $charge
+	 * @return void
+	 */
+	private function set_shipping($charge){
+		// Reset any shipping settings
+		WC()->shipping->reset_shipping();
+
+		// Set shipping data
+		if(!isset($charge->source->shippingMethod)){
+			return;
+		}
+
+		$rate = $charge->source->shippingMethod->rate;
+
+		if(!empty( $rate )){
+			$price = wc_price( $rate / 100 );
+			WC()->cart->set_shipping_total( $price );
+		}
+	}
+	/**
+	 * create_order_from_cart
+	 *
+	 * Uses existing cart to process checkout and create order
+	 *
+	 * @param object $charge
+	 * @return void
+	 */
 	private function create_order_from_cart($charge){
 		// Cart is already set here.
 		if ( WC()->cart->is_empty() ) {
 			wp_send_json_error( __( 'Empty cart', 'woocommerce' ) );
 			exit;
 		}
+
+		$this->set_shipping($charge);
+
+		// Calculate cart totals
+		WC()->cart->calculate_totals();
+
 		return $this->create_order($charge);
 	}
+	/**
+	 * create_order_from_product
+	 * 
+	 * Empties existing cart, creates new cart with given product/variant to process checkout and create order
+	 *
+	 * @param object $charge
+	 * @param integer $product_id
+	 * @param integer $variation_id
+	 * @param integer $quantity
+	 * @return void
+	 */
 	private function create_order_from_product($charge, $product_id, $variation_id = 0, $quantity = 1){
 		// Reset any shipping settings
 		WC()->shipping->reset_shipping();
@@ -431,12 +490,25 @@ class WC_Buyte{
 		WC()->cart->empty_cart();
 		// Create a cart
 		WC()->cart->add_to_cart( $product_id, $quantity, $variation_id );
+
+		// Set shipping on cart
+		$this->set_shipping($charge);
+
 		// Calculate cart totals
 		WC()->cart->calculate_totals();
 
 		return $this->create_order($charge);
 	}
 
+	/**
+	 * create_request
+	 *
+	 * Creates base request arguments for Buyte API to use with wp_remote_request related functions
+	 *
+	 * @param string $path
+	 * @param array $body
+	 * @return void
+	 */
 	private function create_request($path, $body){
 		$data = json_encode($body);
 		if(!$data){
@@ -458,7 +530,14 @@ class WC_Buyte{
 			'args' => $args
 		);
 	}
-
+	/**
+	 * execute_request
+	 *
+	 * Takes a Request arg sourced from create_request to execute an network request to the Buyte API
+	 *
+	 * @param [type] $request
+	 * @return void
+	 */
 	private function execute_request($request) {
 		$url = $request['url'];
 		$args = $request['args'];
@@ -471,6 +550,15 @@ class WC_Buyte{
 		$response_body = json_decode($response['body']);
 		return $response_body;
 	}
+	/**
+	 * create_charge
+	 *
+	 * Accepts a payment token returned from widget payment authorisation.
+	 * Uses request handlers to create a Buyte Charge using the Buyte API.
+	 *
+	 * @param object $paymentToken
+	 * @return void
+	 */
 	private function create_charge(object $paymentToken){
 		$request = $this->create_request('charges', array(
 			'source' => $paymentToken->id,
@@ -489,6 +577,12 @@ class WC_Buyte{
 		return $response;
 	}
 
+	/**
+	 * is_woocommerce_active
+	 *
+	 * Used to determine whether or not woocommerce is active or not.
+	 * Located in the root plugin file to prevent undefined/dependency issues.
+	 */
 	public static function is_woocommerce_active(){
     	$active_plugins = (array) get_option( 'active_plugins', array() );
 

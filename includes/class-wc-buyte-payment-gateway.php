@@ -45,6 +45,7 @@ class WC_Buyte_Payment_Gateway extends WC_Payment_Gateway {
             return array();
         }
 
+        // $order->update_status( 'processing', $message );
         WC_Buyte_Config::log("process_payment: Successfully verified Buyte order payment.", WC_Buyte_Config::LOG_LEVEL_INFO);
         return array(
             'result'   => 'success',
