@@ -128,7 +128,7 @@ class WC_Buyte{
 					WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->price : $product->get_price()
 				);
 			}
-			if($price != $data->paymentToken->amount){
+			if($price > $data->paymentToken->amount){
 				header("HTTP/1.1 400 Bad Request");
 				wp_send_json_error(array(  // send JSON back
 					'error' => "Price of product/variation does not match authorised payment amount."
@@ -265,6 +265,8 @@ class WC_Buyte{
 		$charge_id = $_POST['buyte_charge'];
 		$payment_source_id = $_POST['buyte_payment_source'];
 		$payment_type = $_POST['buyte_payment_type'];
+		$provider_name = $_POST['buyte_provider_name'];
+		$provider_reference = $_POST['buyte_provider_reference'];
 
 		$method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
 		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
@@ -276,6 +278,8 @@ class WC_Buyte{
 
 		update_post_meta( $order_id, '_buyte_charge_id', $charge_id );
 		update_post_meta( $order_id, '_buyte_payment_source_id', $payment_source_id );
+		update_post_meta( $order_id, '_buyte_provider_name', $provider_name );
+		update_post_meta( $order_id, '_buyte_provider_reference', $provider_reference );
 	}
 
 	/**
@@ -405,9 +409,15 @@ class WC_Buyte{
 			'terms' => 1,
 			'buyte_charge' => $charge->id,
 			'buyte_payment_source' => $charge->source->id,
-			'buyte_payment_type' => $payment_type,
-			'buyte_shipping_rate' => isset($charge->source->shippingMethod->rate) ? $charge->source->shippingMethod->rate : 0
+			'buyte_payment_type' => $payment_type
 		);
+
+		if(isset( $charge->providerCharge->reference )){
+			$postdata += array(
+				'buyte_provider_name' => ucfirst(strtolower($charge->providerCharge->type)),
+				'buyte_provider_reference' => $charge->providerCharge->reference,
+			);
+		}
 
 		WC_Buyte_Config::log("create_order: Post data set", WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		WC_Buyte_Config::log($postdata, WC_Buyte_Config::LOG_LEVEL_DEBUG);

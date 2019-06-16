@@ -8,8 +8,10 @@ class WC_Buyte_Payment_Gateway extends WC_Payment_Gateway {
 
     public function __construct() {
         $this->id             = WC_Buyte_Config::get_id();
+        $this->title   = __( WC_Buyte_Config::get_label(), 'woocommerce' );
         $this->method_title   = __( WC_Buyte_Config::get_label(), 'woocommerce' );
         $this->has_fields = false;
+        $this->description = __( WC_Buyte_Config::get_description(), 'woocommerce' );
         $this->method_description = __( WC_Buyte_Config::get_description(), 'woocommerce' );
         // Get data from settings page.
         $this->enabled = WC_Admin_Settings::get_option(WC_Buyte_Config::CONFIG_ENABLED);
@@ -37,15 +39,18 @@ class WC_Buyte_Payment_Gateway extends WC_Payment_Gateway {
         WC_Buyte_Config::log("process_payment: Processing payment in Buyte Payment Gateway class.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
         $order = wc_get_order($order_id);
+        $order->update_status( 'processing' );
 
         $charge_id = get_post_meta( $order_id, '_buyte_charge_id', true );
+        $provider_name = get_post_meta( $order_id, '_buyte_provider_name', true );
+        $provider_reference = get_post_meta( $order_id, '_buyte_provider_reference', true );
 
         if(empty($charge_id)){
             WC_Buyte_Config::log("process_payment: Failed to find Buyte charge id.", WC_Buyte_Config::LOG_LEVEL_WARN);
             return array();
         }
 
-        // $order->update_status( 'processing', $message );
+        $order->update_status( 'completed', sprintf("Buyte charge successfully captured: %s - %s", $provider_name, $provider_reference) );
         WC_Buyte_Config::log("process_payment: Successfully verified Buyte order payment.", WC_Buyte_Config::LOG_LEVEL_INFO);
         return array(
             'result'   => 'success',

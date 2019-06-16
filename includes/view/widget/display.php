@@ -42,7 +42,7 @@
 		}catch(e){}
 		console.log(buyteSettings);
 		window.Buyte("load", buyteSettings);
-		window.Buyte("onPayment", function(paymentToken) {
+		window.Buyte("onPayment", function(paymentToken, done) {
 			params.paymentToken = paymentToken;
 			console.log(params);
 			$.ajax({
@@ -56,11 +56,13 @@
 						console.error(data);
 						alert("Could not checkout with Buyte. Please contact support.");
 					}
+					done();
 				},
 				error: function(e) {
 					// We want to either toast an error -- browser alerts might do for now, or redirect to an error page.
 					console.error(e);
 					alert("Could not checkout with Buyte. Please contact support.");
+					done();
 				}
 			});
 		});
