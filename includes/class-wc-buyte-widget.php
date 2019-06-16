@@ -35,6 +35,65 @@ class WC_Buyte_Widget{
 		}
 	}
 
+	public function build_checkout_items( $existingItems = array() ){
+		$lineItems = array();
+
+		// Add taxes
+		if( wc_tax_enabled() ){
+			$tax = wc_format_decimal( WC()->cart->tax_total, WC()->cart->dp );
+			$amount = WC_Buyte_Util::get_amount( $tax );
+			if(!empty( $amount )){
+				$lineItems[] = (object) array(
+					'name' => __( "Tax", 'woocommerce' ),
+					'amount' => $amount,
+					'type' => 'tax'
+				);
+			}
+		}
+
+		// Add discounts
+		if ( WC()->cart->has_discount() ) {
+			$discounts = 0;
+			if ( WC_Buyte_Util::is_wc_lt( '3.2' ) ) {
+				$discounts = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
+			} else {
+				$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
+				foreach ( $applied_coupons as $amount ) {
+					$discounts += (float) $amount;
+				}
+			}
+			$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
+			$amount = WC_Buyte_Util::get_amount( $discounts );
+			if(!empty( $amount )){
+				$lineItems[] = (object) array(
+					'name' => __( "Discounts", 'woocommerce' ),
+					'amount' => $amount,
+					'type' => 'discount'
+				);
+			}
+		}
+
+		// Include fees and taxes as display items.
+		$cart_fees = 0;
+		if ( WC_Buyte_Util::is_wc_lt( '3.2' ) ) {
+			$cart_fees = WC()->cart->fees;
+		} else {
+			$cart_fees = WC()->cart->get_fees();
+		}
+		foreach ( $cart_fees as $key => $fee ) {
+			$amount = WC_Buyte_Util::get_amount( $fee->amount );
+			if(!empty( $amount )){
+				$lineItems[] = (object) array(
+					'name' => $fee->name,
+					'amount' => $amount,
+					'type' => 'tax'
+				);
+			}
+		}
+
+		return array_merge( $existingItems, $lineItems );
+	}
+
 	public function start_options(){
 		$options = array();
 		$options[self::PROPERTY_PUBLIC_KEY] = $this->get_public_key();
@@ -53,19 +112,26 @@ class WC_Buyte_Widget{
 
 		$items = array();
 		if(!empty($cart)){
-			// TODO: Get taxes
-			// TODO: Get discounts (coupons/discounts/etc.)
 			foreach($cart as $item) {
-				$product = wc_get_product($item['product_id']);
-				$variation = $item['variation_id'] ? new WC_Product_Variation($item['variation_id']) : null;
+				$item_name = "";
+				$item_amount = 0;
+				if( array_key_exists('variation_id', $item) ? !empty($item['variation_id']) : false ){
+					$variation = new WC_Product_Variation($item['variation_id']);
+					$item_name = WC_Buyte_Util::is_wc_lt( '3.0' ) ? $variation->name : $variation->get_name();
+					$item_amount = WC_Buyte_Util::is_wc_lt( '3.0' ) ? $variation->price : $variation->get_price();
+				}else{
+					$product = wc_get_product($item['product_id']);
+					$item_name = WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->name : $product->get_name();
+					$item_amount = WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->price : $product->get_price();
+				}
 				array_push($items, (object) array(
-					'name' => $variation ? $variation->get_name() : $product->get_name(),
-					'amount' => WC_Buyte_Util::get_amount($variation ? $variation->get_price() : $product->get_price()),
+					'name' => $item_name,
+					'amount' => $item_amount,
 					'quantity' => $item['quantity']
 				));
 			}
 		}
-		$options[self::PROPERTY_ITEMS] = $items;
+		$options[self::PROPERTY_ITEMS] = $this->build_checkout_items($items);
 
 		return $options;
 	}
@@ -77,23 +143,31 @@ class WC_Buyte_Widget{
 		$options[self::PROPERTY_OPTIONS]->enabled = false;
 
 		$product = wc_get_product();
-		if($product->is_purchasable()){
-			$options[self::PROPERTY_ITEMS] = array(
-				(object) array(
-					'name' => $product->get_name(),
-					'amount' => WC_Buyte_Util::get_amount($product->get_price()),
-				)
-			);
-			WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
-			$this->render(
-				$this->output_options($options),
-				esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__))),
-				array(
-					'product_id' => $product->get_id()
-				)
-			);
+		if( !$product->is_purchasable() ){
+			return;
 		}
+
+		$product_item = array(
+			(object) array(
+				'name' => WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->name : $product->get_name(),
+				'amount' => WC_Buyte_Util::get_amount(
+					WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->price : $product->get_price()
+				),
+			)
+		);
+
+		$options[self::PROPERTY_ITEMS] = $this->build_checkout_items($product_item);
+
+		WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
+		$this->render(
+			$this->output_options($options),
+			esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__))),
+			array(
+				'product_id' => $product->get_id()
+			)
+		);
 	}
+
 	public function render_cart(){
 		$options = $this->get_cart_options();
 		WC_Buyte_Config::log("Rendering on cart page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
@@ -101,6 +175,7 @@ class WC_Buyte_Widget{
 			$this->output_options($options)
 		);
 	}
+
 	public function render_checkout(){
 		$options = $this->get_cart_options();
 		WC_Buyte_Config::log("Rendering on checkout page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);

@@ -66,7 +66,10 @@ class WC_Buyte{
 
 		// Handle Payment Gateway
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'handle_payment_gateway' ) );
-		add_filter( 'woocommerce_available_payment_gateways', array($this, 'gateway_availability'));
+		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'gateway_availability' ));
+
+		// Add order meta data after order process
+		add_action( 'woocommerce_checkout_order_processed', array( $this, 'add_order_meta' ), 10, 1 );
 	}
 
 	public function basename(){
@@ -80,6 +83,16 @@ class WC_Buyte{
 		return self::$instance;
 	}
 
+	/**
+	 * ajax_buyte_success
+	 *
+	 * Ajax function handler that accepts Buyte payment tokens and context on checkout request,
+	 * and processes a checkout and order.
+	 *
+	 * Uses native WC checkout process for security and compatibility.
+	 *
+	 * @return void
+	 */
 	public function ajax_buyte_success() {
 		WC_Buyte_Config::log("buyte_success: Processing Buyte checkout...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		// Retrieve JSON payload
@@ -96,15 +109,24 @@ class WC_Buyte{
 
 		WC_Buyte_Config::log("buyte_success: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
+		// Define variables
+		$product_id = property_exists($data, 'productId') ? $data->productId : 0;
+		$variation_id = property_exists($data, 'variationId') ? $data->variationId : 0;
+		$quantity = property_exists($data, 'quantity') ? absint( $data->quantity ) : 1;
+
 		// Ensure price of product and amount authorised are the same.
-		if(property_exists($data, 'product_id')){
-			$product = wp_get_product($data->product_id);
+		if(!empty($product_id)){
+			$product = wc_get_product($product_id);
 			$price = 0;
-			if(property_exists($data, 'variation_id')){
-				$variation = new WC_Product_Variation($data->variation_id);
-				$price = WC_Buyte_Util::get_amount($variation->get_price());
+			if(!empty($variation_id)){
+				$variation = new WC_Product_Variation($variation_id);
+				$price = WC_Buyte_Util::get_amount(
+					WC_Buyte_Util::is_wc_lt( '3.0' ) ? $variation->price : $variation->get_price()
+				);
 			}else{
-				$price = WC_Buyte_Util::get_amount($product->get_price());
+				$price = WC_Buyte_Util::get_amount(
+					WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->price : $product->get_price()
+				);
 			}
 			if($price != $data->paymentToken->amount){
 				header("HTTP/1.1 400 Bad Request");
@@ -120,23 +142,21 @@ class WC_Buyte{
 		// Get charge
 		$charge = $this->create_charge($data->paymentToken);
 		WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
-		if(property_exists($charge, 'id')){
-			if(property_exists($data, 'product_id')){
-				$this->create_order_from_product(
-					$charge,
-					$data->product_id,
-					property_exists($data, 'variation_id') ? $data->variation_id : null,
-					property_exists($data, 'quantity') ? absint( $data->quantity ) : 1
-				);
+		if( property_exists( $charge, 'id' ) ){
+			// Order functions use a WC checkout method that sends a redirect url to the frontend for us.
+			if( empty( $product_id ) ){
+				$this->create_order_from_cart( $charge );
 			} else {
-				$this->create_order_from_cart($charge);
+				$this->create_order_from_product( $charge, $product_id, $variation_id, $quantity );
 			}
 			WC_Buyte_Config::log("buyte_success: Order created and confirmation url sent.", WC_Buyte_Config::LOG_LEVEL_INFO);
 			exit;
+		}else{
+			WC_Buyte_Config::log("buyte_success: Charge does not have Id. Contact Buyte Support.", WC_Buyte_Config::LOG_LEVEL_WARN);
 		}
 
 		wp_send_json_error(array(  // send JSON back
-			'error' => 'Could not process successful Buyte checkout'
+			'error' => 'Could not process Buyte checkout'
 		));
 		exit;
 	}
@@ -154,20 +174,41 @@ class WC_Buyte{
 		exit;
 	}
 
+	/**
+	 * Load all dependency files for this plugin.
+	 *
+	 */
 	public function load_dependencies(){
 		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-config.php';
 		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-widget.php';
 		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-util.php';
 		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-payment-gateway.php';
 	}
+
+	/**
+	 * Setup and Initiate Config
+	 *
+	 * @return void
+	 */
 	public function handle_config(){
 		$this->WC_Buyte_Config = new WC_Buyte_Config($this);
 		$this->WC_Buyte_Config->init();
 	}
+	/**
+	 * Setup and initiate the Buyte widget
+	 *
+	 * @return void
+	 */
 	public function handle_widget(){
 		$this->WC_Buyte_Widget = new WC_Buyte_Widget($this);
 		$this->WC_Buyte_Widget->init_hooks();
 	}
+	/**
+	 * Setup and initiate Buyte as a means of processing order payments. -- payment gateway.
+	 *
+	 * @param array[string] $methods
+	 * @return void
+	 */
 	public function handle_payment_gateway($methods) {
 		$methods[] = 'WC_Buyte_Payment_Gateway';
     	return $methods;
@@ -186,11 +227,55 @@ class WC_Buyte{
 			return $gateways;
 		}
 
-		if(empty( $_POST['buyte_charge'] )){
+		if ( !$this->is_buyte_checkout() ) {
 			unset($gateways[$id]);
 		}
 
 		return $gateways;
+	}
+
+	/**
+	 * is_buyte_checkout
+	 *
+	 * Checks if the current checkout request is a Buyte checkout
+	 *
+	 * @return boolean
+	 */
+	public function is_buyte_checkout() {
+		if( isset( $_POST['buyte_charge'] ) ){
+			return !empty( $_POST['buyte_charge'] );
+		}
+		return false;
+	}
+
+	/**
+	 * add_order_meta
+	 *
+	 * Adds Buyte related metadata to the order
+	 *
+	 * @param [type] $order_id
+	 * @return void
+	 */
+	public function add_order_meta( $order_id ){
+		if ( !$this->is_buyte_checkout() ) {
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+		$charge_id = $_POST['buyte_charge'];
+		$payment_source_id = $_POST['buyte_payment_source'];
+		$payment_type = $_POST['buyte_payment_type'];
+
+		$method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
+		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
+			update_post_meta( $order_id, '_payment_method_title', $method_title );
+		} else {
+			$order->set_payment_method_title( $method_title );
+			$order->save();
+		}
+
+		update_post_meta( $order_id, '_buyte_charge_id', $charge_id );
+		update_post_meta( $order_id, '_buyte_payment_source_id', $payment_source_id );
 	}
 
 	private function create_order($charge){
@@ -317,6 +402,8 @@ class WC_Buyte{
 		WC_Buyte_Config::log("create_order: Post data set", WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		WC_Buyte_Config::log($postdata, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
+		// Required to process checkout using WC
+		$_REQUEST['woocommerce-process-checkout-nonce'] = wp_create_nonce( 'woocommerce-process_checkout' );
 		$_POST = $postdata;
 
 		// Execute WC Proceed Checkout on the existing cart.
@@ -350,37 +437,6 @@ class WC_Buyte{
 		return $this->create_order($charge);
 	}
 
-	/**
-	 * add_order_meta
-	 *
-	 * Adds Buyte related metadata to the order
-	 *
-	 * @param [type] $order_id
-	 * @param [type] $posted_data
-	 * @return void
-	 */
-	private function add_order_meta( $order_id, $posted_data ){
-		if ( empty( $_POST['buyte_charge'] ) ) {
-			return;
-		}
-
-		$order = wc_get_order( $order_id );
-		$charge_id = wc_clean( $_POST['buyte_charge'] );
-		$payment_source_id = wc_clean( $_POST['buyte_payment_source'] );
-		$payment_type = wc_clean( $_POST['buyte_payment_type'] );
-
-		$method_title = $payment_type . ' ('. WC_Buyte_Config::$label .')';
-		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
-			update_post_meta( $order_id, '_payment_method_title', $method_title );
-		} else {
-			$order->set_payment_method_title( $method_title );
-			$order->save();
-		}
-
-		update_post_meta( $order_id, '_buyte_charge_id', $charge_id );
-		update_post_meta( $order_id, '_buyte_payment_source_id', $payment_source_id );
-	}
-
 	private function create_request($path, $body){
 		$data = json_encode($body);
 		if(!$data){
@@ -402,6 +458,7 @@ class WC_Buyte{
 			'args' => $args
 		);
 	}
+
 	private function execute_request($request) {
 		$url = $request['url'];
 		$args = $request['args'];

@@ -2,7 +2,6 @@
 <?php
 	$ajaxurl = admin_url( 'admin-ajax.php' );
 	$nextNonce = wp_create_nonce( WC_Buyte::NONCE_NAME );
-	$checkoutNonce = wp_create_nonce( 'woocommerce-process_checkout' ); // Required to process checkout using WC
 ?>
 <div id="buyte-checkout-widget"></div>
 <script type="text/javascript" src="https://js.buytecheckout.com/"></script>
@@ -13,8 +12,7 @@
 	(function($) {
 		var params = {
 			action: "<?php echo WC_Buyte::AJAX_SUCCESS; ?>",
-			nextNonce: "<?php echo $nextNonce; ?>",
-			_wpnonce: "<?php echo $checkoutNonce; ?>"
+			nextNonce: "<?php echo $nextNonce; ?>"
 		};
 		var productId = <?php echo array_key_exists('product_id', $widget_data) ? $widget_data['product_id'] : 0; ?>;
 		if(!!productId){
@@ -52,9 +50,9 @@
 				data: params,
 				success: function(data) {
 					if(data.result === "success"){
-						// ...
+						window.location.replace(data.redirect);
 					}else if(data.result === "failure"){
-						console.log(data);
+						console.error(data);
 						alert("Could not checkout with Buyte. Please contact support.");
 					}
 				},

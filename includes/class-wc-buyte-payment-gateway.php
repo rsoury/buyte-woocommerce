@@ -7,11 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Buyte_Payment_Gateway extends WC_Payment_Gateway {
 
     public function __construct() {
-		$this->id             = WC_Buyte_Config::get_id();
+        $this->id             = WC_Buyte_Config::get_id();
         $this->method_title   = __( WC_Buyte_Config::get_label(), 'woocommerce' );
         $this->has_fields = false;
         $this->method_description = __( WC_Buyte_Config::get_description(), 'woocommerce' );
-        $this->enabled = WC_Admin_Settings::get_option(WC_Buyte_Config::CONFIG_ENABLED) === 'yes';
+        // Get data from settings page.
+        $this->enabled = WC_Admin_Settings::get_option(WC_Buyte_Config::CONFIG_ENABLED);
     }
 
     /**

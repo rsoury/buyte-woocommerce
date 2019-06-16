@@ -198,6 +198,12 @@ class WC_Buyte_Config {
     public static function get_description(){
         return self::$_description;
     }
+    public static function get_website_url(){
+        return self::$_website;
+    }
+    public static function get_dashboard_url(){
+        return self::$_dashboard;
+    }
 
     /**
      * Log the message when necessary
