@@ -31,17 +31,22 @@ class WC_Buyte_Config {
 
     public $WC_Buyte;
 
-    public $id = 'buyte';
-    public $label = 'Buyte';
-    public $settings_description = 'Offer your customers Apple Pay and Google Pay through a widget that sits on your website. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.';
-    public $settings_webite = 'https://www.buytecheckout.com/?utm_source=woocommerce&utm_medium=plugin&utm_campaign=buyte';
-    public $settings_dashboard = 'https://dashboard.buytecheckout.com/?utm_source=woocommerce&utm_medium=plugin&utm_campaign=buyte';
+    public static $_id = 'buyte';
+    public static $_label = 'Buyte';
+    public static $_description = 'Offer your customers Apple Pay and Google Pay through a widget that sits on your website. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.';
+    public static $_website = 'https://www.buytecheckout.com/?utm_source=woocommerce&utm_medium=plugin&utm_campaign=buyte';
+    public static $_dashboard = 'https://dashboard.buytecheckout.com/?utm_source=woocommerce&utm_medium=plugin&utm_campaign=buyte';
 
     public static $config_log_level = self::LOG_LEVEL_ALL;
     public static $logger;
 
     public function __construct(WC_Buyte $WC_Buyte){
-		$this->WC_Buyte = $WC_Buyte;
+        $this->WC_Buyte = $WC_Buyte;
+        $this->id = self::$_id;
+        $this->label = self::$_label;
+        $this->settings_description = self::$_description;
+        $this->settings_website = self::$_website;
+        $this->settings_dashboard = self::$_dashboard;
     }
 
     public function init(){
@@ -59,7 +64,7 @@ class WC_Buyte_Config {
         $admin_css_url = plugin_dir_url( __FILE__ ) . '../assets/css/admin.css';
         wp_register_style( 'buyte-admin-style', $admin_css_url );
 		wp_enqueue_style( 'buyte-admin-style' );
-	}
+    }
 
 	public function get_settings(){
 		$settings = array(
@@ -67,7 +72,7 @@ class WC_Buyte_Config {
                 'id'    => $this->id . '_title',
                 'title' => __( $this->label . ' settings', 'woocommerce' ),
                 'type'  => 'title',
-                'desc' => sprintf(__('<a href="%s" target="_blank" rel="noopener noreferrer">Don\'t have your Buyte account and credentials?</a>', 'woocommerce'), $this->settings_webite)
+                'desc' => sprintf(__('<a href="%s" target="_blank" rel="noopener noreferrer">Don\'t have your Buyte account and credentials?</a>', 'woocommerce'), $this->settings_website)
             ),
 			 array(
                 'id' => self::CONFIG_ENABLED,
@@ -182,6 +187,16 @@ class WC_Buyte_Config {
 
     public function get_option( $option_name, $default = '' ) {
         return WC_Admin_Settings::get_option($option_name, $default);
+    }
+
+    public static function get_id(){
+        return self::$_id;
+    }
+    public static function get_label(){
+        return self::$_label;
+    }
+    public static function get_description(){
+        return self::$_description;
     }
 
     /**

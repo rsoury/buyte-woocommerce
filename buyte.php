@@ -37,7 +37,6 @@ class WC_Buyte{
 	const AJAX_CART = 'buyte_cart';
 	/* api */
 	const API_BASE_URL = 'https://api.buytecheckout.com/v1/';
-	// const API_BASE_URL = 'https://3371887b.au.ngrok.io/v1/';
 
 	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
@@ -64,6 +63,21 @@ class WC_Buyte{
 
 		// Handle Widget loads
 		$this->handle_widget();
+
+		// Handle Payment Gateway
+		add_filter( 'woocommerce_payment_gateways', array( $this, 'handle_payment_gateway' ) );
+		add_filter( 'woocommerce_available_payment_gateways', array($this, 'gateway_availability'));
+	}
+
+	public function basename(){
+    	return plugin_basename(__FILE__);
+	}
+
+    public static function instance() {
+		if ( is_null( self::$instance ) ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
 	}
 
 	public function ajax_buyte_success() {
@@ -75,7 +89,7 @@ class WC_Buyte{
 		}
 
 		// check nonce
-		if ( ! wp_verify_nonce( $data->nonce, self::NONCE_NAME ) ) {
+		if ( ! wp_verify_nonce( $data->nextNonce, self::NONCE_NAME ) ) {
 			header("HTTP/1.1 401 Unauthorized");
    			exit;
 		}
@@ -107,17 +121,17 @@ class WC_Buyte{
 		$charge = $this->create_charge($data->paymentToken);
 		WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
 		if(property_exists($charge, 'id')){
-			$order = property_exists($data, 'product_id') ?
+			if(property_exists($data, 'product_id')){
 				$this->create_order_from_product(
 					$charge,
 					$data->product_id,
-					property_exists($data, 'variation_id') ? $data->variation_id : null
-				) :
+					property_exists($data, 'variation_id') ? $data->variation_id : null,
+					property_exists($data, 'quantity') ? absint( $data->quantity ) : 1
+				);
+			} else {
 				$this->create_order_from_cart($charge);
+			}
 			WC_Buyte_Config::log("buyte_success: Order created and confirmation url sent.", WC_Buyte_Config::LOG_LEVEL_INFO);
-			wp_send_json(array(  // send JSON back
-				'redirect_url' => $this->get_confirmation_url($order)
-			));
 			exit;
 		}
 
@@ -140,61 +154,231 @@ class WC_Buyte{
 		exit;
 	}
 
-    public function basename(){
-    	return plugin_basename(__FILE__);
+	public function load_dependencies(){
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-config.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-widget.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-util.php';
+		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-payment-gateway.php';
 	}
-
-    public static function instance() {
-		if ( is_null( self::$instance ) ) {
-			self::$instance = new self();
+	public function handle_config(){
+		$this->WC_Buyte_Config = new WC_Buyte_Config($this);
+		$this->WC_Buyte_Config->init();
+	}
+	public function handle_widget(){
+		$this->WC_Buyte_Widget = new WC_Buyte_Widget($this);
+		$this->WC_Buyte_Widget->init_hooks();
+	}
+	public function handle_payment_gateway($methods) {
+		$methods[] = 'WC_Buyte_Payment_Gateway';
+    	return $methods;
+	}
+	/**
+	 * gateway_availability
+	 *
+	 * Ensures Buyte Gateway only available when order params inclure a Buyte Charge Id.
+	 *
+	 * @param [type] $gateways
+	 * @return void
+	 */
+	public function gateway_availability($gateways){
+		$id = WC_Buyte_Config::get_id();
+		if(!isset($gateways[$id])){
+			return $gateways;
 		}
-		return self::$instance;
+
+		if(empty( $_POST['buyte_charge'] )){
+			unset($gateways[$id]);
+		}
+
+		return $gateways;
 	}
 
-	private function create_order(){
-		/**
-		 * Have the follow JS Object properties sorted in $_POST and a valid Cart, then WC()->checkout()->process_checkout();
-		 * You basically just want to use all the code in the class-wc-stripe-payment-request.php file inside Stripe Plugin.
-		 *
-			billing_first_name:        null !== name ? name.split( ' ' ).slice( 0, 1 ).join( ' ' ) : '',
-			billing_last_name:         null !== name ? name.split( ' ' ).slice( 1 ).join( ' ' ) : '',
-			billing_company:           '',
-			billing_email:             null !== email   ? email : evt.payerEmail,
-			billing_phone:             null !== phone   ? phone : evt.payerPhone.replace( '/[() -]/g', '' ),
-			billing_country:           null !== billing ? billing.country : '',
-			billing_address_1:         null !== billing ? billing.line1 : '',
-			billing_address_2:         null !== billing ? billing.line2 : '',
-			billing_city:              null !== billing ? billing.city : '',
-			billing_state:             null !== billing ? billing.state : '',
-			billing_postcode:          null !== billing ? billing.postal_code : '',
-			shipping_first_name:       '',
-			shipping_last_name:        '',
-			shipping_company:          '',
-			shipping_country:          '',
-			shipping_address_1:        '',
-			shipping_address_2:        '',
-			shipping_city:             '',
-			shipping_state:            '',
-			shipping_postcode:         '',
-			shipping_method:           [ null === evt.shippingOption ? null : evt.shippingOption.id ],
-			order_comments:            '',
-			payment_method:            'stripe',
-			ship_to_different_address: 1,
-			terms:                     1,
-			stripe_source:             source.id,
-			payment_request_type:      paymentRequestType
-		 */
-		// ...
+	private function create_order($charge){
+		if(!property_exists($charge, 'id')){
+			$errMsg = "No Buyte charge Id";
+			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
+			throw new Exception($errMsg);
+		}
+		if(!property_exists($charge, 'customer')){
+			$errMsg = "No customer information in Buyte charge";
+			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
+			throw new Exception($errMsg);
+		}
+
+		$customer = $charge->customer;
+
+		// Customer Name
+		$first_name = '';
+		if(property_exists($customer, 'givenName')){
+			$first_name = $customer->givenName;
+		}
+		$last_name = '';
+		if(property_exists($customer, 'familyName')){
+			$last_name = $customer->familyName;
+		}
+		if(property_exists($customer, 'name')){
+			$split_name = WC_Buyte_Util::split_name($customer->name);
+			if(empty($first_name)){
+				$first_name = $split_name[0];
+			}
+			if(empty($last_name)){
+				$last_name = $split_name[1];
+			}
+		}
+
+		$postdata = array(
+			'shipping_first_name' => $first_name,
+			'shipping_last_name' => $last_name,
+			'billing_first_name' => $first_name,
+			'billing_last_name' => $last_name,
+			'shipping_company' => '',
+			'shipping_country' =>
+				isset($customer->shippingAddress->country) ?
+					$customer->shippingAddress->country :
+					(isset($customer->shippingAddress->countryCode) ? $customer->shippingAddress->countryCode : ''),
+			'shipping_address_1' =>
+				isset($customer->shippingAddress->addressLines) ?
+					(sizeof($customer->shippingAddress->addressLines) > 0 ? $customer->shippingAddress->addressLines[0] : '') :
+					'',
+			'shipping_address_2' =>
+				isset($customer->shippingAddress->addressLines) ?
+					(sizeof($customer->shippingAddress->addressLines) > 1 ? $customer->shippingAddress->addressLines[1] : '') :
+					'',
+			'shipping_city' => isset($customer->shippingAddress->locality) ? $customer->shippingAddress->locality : '',
+			'shipping_state' => isset($customer->shippingAddress->administrativeArea) ? $customer->shippingAddress->administrativeArea : '',
+			'shipping_postcode' => isset($customer->shippingAddress->postalCode) ? $customer->shippingAddress->postalCode : '',
+		);
+		if(isset($customer->billingAddress) ? !empty((array) $customer->billingAddress) : false){
+			$postdata += array(
+				'billing_company' => '',
+				'billing_country' =>
+					isset($customer->billingAddress->country) ?
+						$customer->billingAddress->country :
+						(isset($customer->billingAddress->countryCode) ? $customer->billingAddress->countryCode : ''),
+				'billing_address_1' =>
+					isset($customer->billingAddress->addressLines) ?
+						(sizeof($customer->billingAddress->addressLines) > 0 ? $customer->billingAddress->addressLines[0] : '') :
+						'',
+				'billing_address_2' =>
+					isset($customer->billingAddress->addressLines) ?
+						(sizeof($customer->billingAddress->addressLines) > 1 ? $customer->billingAddress->addressLines[1] : '') :
+						'',
+				'billing_city' => isset($customer->billingAddress->locality) ? $customer->billingAddress->locality : '',
+				'billing_state' => isset($customer->billingAddress->administrativeArea) ? $customer->billingAddress->administrativeArea : '',
+				'billing_postcode' => isset($customer->billingAddress->postalCode) ? $customer->billingAddress->postalCode : '',
+			);
+		}else{
+			$postdata += array(
+				'billing_company' => $postdata['shipping_company'],
+				'billing_country' => $postdata['shipping_country'],
+				'billing_address_1' => $postdata['shipping_address_1'],
+				'billing_address_2' => $postdata['shipping_address_2'],
+				'billing_city' => $postdata['shipping_city'],
+				'billing_state' => $postdata['shipping_state'],
+				'billing_postcode' => $postdata['shipping_postcode']
+			);
+		}
+
+		// Comments
+		$comments = "Checkout completed with Buyte";
+		$payment_type = '';
+		if(isset($charge->source->paymentMethod->name)){
+			$payment_type = $charge->source->paymentMethod->name;
+			$comments .= "'s " . $charge->source->paymentMethod->name . ".";
+		}
+		if(isset($charge->source->shippingMethod)){
+			$shipping_method_name = isset($charge->source->shippingMethod->label) ? $charge->source->shippingMethod->label : '';
+			$shipping_method_description = isset($charge->source->shippingMethod->description) ? $charge->source->shippingMethod->description : '';
+			$shipping_method_rate = isset($charge->source->shippingMethod->rate) ?
+				($charge->source->shippingMethod->rate > 0 ? wc_price( $charge->source->shippingMethod->rate / 100 ) : "Free")
+				: '';
+			$comments .= "\n
+				Shipping Method:
+					Name: ". $shipping_method_name ."
+					Description: ". $shipping_method_description ."
+					Rate: ". $shipping_method_rate ."
+			";
+		}
+
+		// Recreate $_POST for checkout
+		$postdata += array(
+			'billing_email' => property_exists($customer, 'emailAddress') ? $customer->emailAddress : null,
+			'billing_phone' => property_exists($customer, 'phoneNumber') ? $customer->phoneNumber : null,
+			'shipping_method' => null,
+			'order_comments' => $comments,
+			'payment_method' => $this->WC_Buyte_Config->id,
+			'ship_to_different_address' => 1,
+			'terms' => 1,
+			'buyte_charge' => $charge->id,
+			'buyte_payment_source' => $charge->source->id,
+			'buyte_payment_type' => $payment_type,
+		);
+
+		WC_Buyte_Config::log("create_order: Post data set", WC_Buyte_Config::LOG_LEVEL_DEBUG);
+		WC_Buyte_Config::log($postdata, WC_Buyte_Config::LOG_LEVEL_DEBUG);
+
+		$_POST = $postdata;
+
+		// Execute WC Proceed Checkout on the existing cart.
+
+		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
+			define( 'WOOCOMMERCE_CHECKOUT', true );
+		}
+
+		WC()->checkout()->process_checkout();
+
+		return;
 	}
 	private function create_order_from_cart($charge){
-		// Execute WC Proceed Checkout on the existing cart.
+		// Cart is already set here.
+		if ( WC()->cart->is_empty() ) {
+			wp_send_json_error( __( 'Empty cart', 'woocommerce' ) );
+			exit;
+		}
+		return $this->create_order($charge);
 	}
-	private function create_order_from_product($charge, $product_id, $variation_id = 0){
+	private function create_order_from_product($charge, $product_id, $variation_id = 0, $quantity = 1){
+		// Reset any shipping settings
+		WC()->shipping->reset_shipping();
+		// First empty the cart to prevent wrong calculation.
+		WC()->cart->empty_cart();
 		// Create a cart
-		// Then execute WC Proceed Checkout
+		WC()->cart->add_to_cart( $product_id, $quantity, $variation_id );
+		// Calculate cart totals
+		WC()->cart->calculate_totals();
+
+		return $this->create_order($charge);
 	}
-	private function get_confirmation_url(WC_Order $order){
-		return $order->get_checkout_order_received_url();
+
+	/**
+	 * add_order_meta
+	 *
+	 * Adds Buyte related metadata to the order
+	 *
+	 * @param [type] $order_id
+	 * @param [type] $posted_data
+	 * @return void
+	 */
+	private function add_order_meta( $order_id, $posted_data ){
+		if ( empty( $_POST['buyte_charge'] ) ) {
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+		$charge_id = wc_clean( $_POST['buyte_charge'] );
+		$payment_source_id = wc_clean( $_POST['buyte_payment_source'] );
+		$payment_type = wc_clean( $_POST['buyte_payment_type'] );
+
+		$method_title = $payment_type . ' ('. WC_Buyte_Config::$label .')';
+		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
+			update_post_meta( $order_id, '_payment_method_title', $method_title );
+		} else {
+			$order->set_payment_method_title( $method_title );
+			$order->save();
+		}
+
+		update_post_meta( $order_id, '_buyte_charge_id', $charge_id );
+		update_post_meta( $order_id, '_buyte_payment_source_id', $payment_source_id );
 	}
 
 	private function create_request($path, $body){
@@ -246,20 +430,6 @@ class WC_Buyte{
 		WC_Buyte_Config::log("create_charge: Successfully created charge: " . $response->id, WC_Buyte_Config::LOG_LEVEL_INFO);
 		WC_Buyte_Config::log($response, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		return $response;
-	}
-
-	private function load_dependencies(){
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-config.php';
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-widget.php';
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-util.php';
-	}
-	private function handle_config(){
-		$this->WC_Buyte_Config = new WC_Buyte_Config($this);
-		$this->WC_Buyte_Config->init();
-	}
-	private function handle_widget(){
-		$this->WC_Buyte_Widget = new WC_Buyte_Widget($this);
-		$this->WC_Buyte_Widget->init_hooks();
 	}
 
 	public static function is_woocommerce_active(){

@@ -11,8 +11,8 @@ class WC_Buyte_Settings extends WC_Settings_Page {
 	 */
 	public function __construct(WC_Buyte $WC_Buyte) {
         $this->WC_Buyte = $WC_Buyte;
-		$this->id    = $this->WC_Buyte->WC_Buyte_Config->id;
-		$this->label = __( $this->WC_Buyte->WC_Buyte_Config->label, 'woocommerce' );
+		$this->id    = WC_Buyte_Config::get_id();
+		$this->label = __( WC_Buyte_Config::get_label(), 'woocommerce' );
 
 		parent::__construct();
 	}

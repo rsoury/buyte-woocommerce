@@ -16,10 +16,12 @@
 		// Listen for quantity
 		var $quantity = $('form [name="quantity"]');
 		var quantity = $quantity.val() || 1;
+		window.wc_buyte.product_quantity(quantity);
 		$quantity.on("change", function() {
 			var $this = $(this);
 			quantity = $this.val();
 			quantity = parseInt(quantity);
+			window.wc_buyte.product_quantity(quantity);
 			var updateSettings = {
 				items: lastSettings.items
 			};
@@ -61,7 +63,7 @@
 				// console.log(updateSettings);
 				window.Buyte("update", updateSettings);
 
-				window.buyte_product_variation(variation.variation_id);
+				window.wc_buyte.product_variation(variation.variation_id);
 
 				window.Buyte("enable");
 			})
@@ -69,7 +71,7 @@
 				// Reset lastSettings but keep quantity and disable.
 				lastSettings = settings;
 				lastSettings.items[0].quantity = quantity;
-				window.buyte_product_variation();
+				window.wc_buyte.product_variation();
 				window.Buyte("disable");
 			});
 	});
