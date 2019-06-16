@@ -40,6 +40,7 @@
 		try{
 			buyteSettings = JSON.parse(rawBuyteSettings);
 		}catch(e){}
+		console.log(buyteSettings);
 		window.Buyte("load", buyteSettings);
 		window.Buyte("onPayment", function(paymentToken) {
 			params.paymentToken = paymentToken;
