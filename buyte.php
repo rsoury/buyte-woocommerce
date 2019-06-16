@@ -564,7 +564,7 @@ class WC_Buyte{
 	 * @param object $paymentToken
 	 * @return void
 	 */
-	private function create_charge(object $paymentToken){
+	private function create_charge($paymentToken){
 		$request = $this->create_request('charges', array(
 			'source' => $paymentToken->id,
 			'amount' => (int) $paymentToken->amount,
