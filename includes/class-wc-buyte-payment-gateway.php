@@ -50,7 +50,7 @@ class WC_Buyte_Payment_Gateway extends WC_Payment_Gateway {
             return array();
         }
 
-        $order->update_status( 'completed', sprintf("Buyte charge successfully captured: %s - %s", $provider_name, $provider_reference) );
+        $order->update_status( 'completed', sprintf("Buyte charge successfully captured: %s - %s \n\n", $provider_name, $provider_reference) );
         WC_Buyte_Config::log("process_payment: Successfully verified Buyte order payment.", WC_Buyte_Config::LOG_LEVEL_INFO);
         return array(
             'result'   => 'success',

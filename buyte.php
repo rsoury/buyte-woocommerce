@@ -267,6 +267,9 @@ class WC_Buyte{
 		$payment_type = $_POST['buyte_payment_type'];
 		$provider_name = $_POST['buyte_provider_name'];
 		$provider_reference = $_POST['buyte_provider_reference'];
+		$shipping_name = $_POST['buyte_shipping_name'];
+		$shipping_description = $_POST['buyte_shipping_description'];
+		$shipping_rate = $_POST['buyte_shipping_rate'];
 
 		$method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
 		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
@@ -278,8 +281,30 @@ class WC_Buyte{
 
 		update_post_meta( $order_id, '_buyte_charge_id', $charge_id );
 		update_post_meta( $order_id, '_buyte_payment_source_id', $payment_source_id );
+
+		// Set Provider details
 		update_post_meta( $order_id, '_buyte_provider_name', $provider_name );
 		update_post_meta( $order_id, '_buyte_provider_reference', $provider_reference );
+
+		// Set shipping information
+		update_post_meta( $order_id, '_buyte_shipping_name', $shipping_name );
+		update_post_meta( $order_id, '_buyte_shipping_description', $shipping_description );
+		update_post_meta( $order_id, '_buyte_shipping_rate', $shipping_rate );
+		// Set order note
+		$order->add_order_note("
+			Shipping Method:
+				Name: <strong>". $shipping_name ."</strong>
+				Description: <strong>". $shipping_description ."</strong>
+				Rate: <strong>". WC_Buyte_Util::get_price( $shipping_rate, true, true ) ."</strong>
+		");
+		// Set order shipping totals post order creation.
+		if(!empty( $shipping_rate )){
+			$shipping_total = WC_Buyte_Util::get_price( $shipping_rate );
+			$total = $order->get_total() + $shipping_total;
+			$order->set_shipping_total( $shipping_total );
+			$order->set_total( $total );
+			$order->save();
+		}
 	}
 
 	/**
@@ -380,6 +405,7 @@ class WC_Buyte{
 		// Comments
 		$comments = "Checkout completed with Buyte";
 		$payment_type = '';
+		$shipping_postdata = array();
 		if(isset($charge->source->paymentMethod->name)){
 			$payment_type = $charge->source->paymentMethod->name;
 			$comments .= "'s " . $charge->source->paymentMethod->name . ".";
@@ -387,15 +413,12 @@ class WC_Buyte{
 		if(isset($charge->source->shippingMethod)){
 			$shipping_method_name = isset($charge->source->shippingMethod->label) ? $charge->source->shippingMethod->label : '';
 			$shipping_method_description = isset($charge->source->shippingMethod->description) ? $charge->source->shippingMethod->description : '';
-			$shipping_method_rate = isset($charge->source->shippingMethod->rate) ?
-				($charge->source->shippingMethod->rate > 0 ? wc_price( $charge->source->shippingMethod->rate / 100 ) : "Free")
-				: '';
-			$comments .= "\n
-				Shipping Method:
-					Name: ". $shipping_method_name ."
-					Description: ". $shipping_method_description ."
-					Rate: ". $shipping_method_rate ."
-			";
+			$shipping_method_rate = isset($charge->source->shippingMethod->rate) ? $charge->source->shippingMethod->rate : 0;
+			$shipping_postdata = array(
+				'buyte_shipping_name' => $shipping_method_name,
+				'buyte_shipping_description' => $shipping_method_description,
+				'buyte_shipping_rate' => $shipping_method_rate
+			);
 		}
 
 		// Recreate $_POST for checkout
@@ -409,7 +432,7 @@ class WC_Buyte{
 			'terms' => 1,
 			'buyte_charge' => $charge->id,
 			'buyte_payment_source' => $charge->source->id,
-			'buyte_payment_type' => $payment_type
+			'buyte_payment_type' => $payment_type,
 		);
 
 		if(isset( $charge->providerCharge->reference )){
@@ -417,6 +440,10 @@ class WC_Buyte{
 				'buyte_provider_name' => ucfirst(strtolower($charge->providerCharge->type)),
 				'buyte_provider_reference' => $charge->providerCharge->reference,
 			);
+		}
+
+		if(!empty($shipping_postdata)){
+			$postdata += $shipping_postdata;
 		}
 
 		WC_Buyte_Config::log("create_order: Post data set", WC_Buyte_Config::LOG_LEVEL_DEBUG);
@@ -436,30 +463,7 @@ class WC_Buyte{
 
 		return;
 	}
-	/**
-	 * set_shipping
-	 *
-	 * Set shipping rate in charge to cart totals if it exists.
-	 *
-	 * @param [type] $charge
-	 * @return void
-	 */
-	private function set_shipping($charge){
-		// Reset any shipping settings
-		WC()->shipping->reset_shipping();
 
-		// Set shipping data
-		if(!isset($charge->source->shippingMethod)){
-			return;
-		}
-
-		$rate = $charge->source->shippingMethod->rate;
-
-		if(!empty( $rate )){
-			$price = wc_price( $rate / 100 );
-			WC()->cart->set_shipping_total( $price );
-		}
-	}
 	/**
 	 * create_order_from_cart
 	 *
@@ -474,11 +478,6 @@ class WC_Buyte{
 			wp_send_json_error( __( 'Empty cart', 'woocommerce' ) );
 			exit;
 		}
-
-		$this->set_shipping($charge);
-
-		// Calculate cart totals
-		WC()->cart->calculate_totals();
 
 		return $this->create_order($charge);
 	}
@@ -500,10 +499,6 @@ class WC_Buyte{
 		WC()->cart->empty_cart();
 		// Create a cart
 		WC()->cart->add_to_cart( $product_id, $quantity, $variation_id );
-
-		// Set shipping on cart
-		$this->set_shipping($charge);
-
 		// Calculate cart totals
 		WC()->cart->calculate_totals();
 
