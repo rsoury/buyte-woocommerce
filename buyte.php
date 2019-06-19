@@ -271,7 +271,8 @@ class WC_Buyte{
 		$shipping_description = $_POST['buyte_shipping_description'];
 		$shipping_rate = $_POST['buyte_shipping_rate'];
 
-		$method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
+		// $method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
+		$method_title = $payment_type;
 		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
 			update_post_meta( $order_id, '_payment_method_title', $method_title );
 		} else {
