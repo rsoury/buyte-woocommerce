@@ -562,7 +562,7 @@ class WC_Buyte{
 	 * Accepts a payment token returned from widget payment authorisation.
 	 * Uses request handlers to create a Buyte Charge using the Buyte API.
 	 *
-	 * @param object $paymentToken
+	 * @param object|stdClass $paymentToken
 	 * @return void
 	 */
 	private function create_charge($paymentToken){
