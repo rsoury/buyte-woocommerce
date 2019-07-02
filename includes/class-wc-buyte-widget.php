@@ -8,6 +8,7 @@ class WC_Buyte_Widget{
 	const PROPERTY_WIDGET_ID = "widgetId";
 	const PROPERTY_ITEMS = "items";
 	const PROPERTY_OPTIONS = "options";
+	const PROPERTY_SHIPPING_METHODS = "shippingMethods";
 
 	private $WC_Buyte;
 
@@ -176,6 +177,19 @@ class WC_Buyte_Widget{
 		);
 
 		$options[self::PROPERTY_ITEMS] = $product_item;
+
+		WC_Buyte_Util::debug_log("Shipping enabled: " . (wc_shipping_enabled() ? "true" : "false") . " , Product needs shipping: " . ($product->needs_shipping() ? "true" : "false"));
+		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
+			$wcShippingMethods = WC()->shipping->get_shipping_methods();
+			WC_Buyte_Util::debug_log($methods);
+			$shippingMethods = array();
+			foreach( $wcShippingMethods as $method ) {
+				if( $method->enabled ){
+					// ...
+				}
+			}
+			$options[self::PROPERTY_SHIPPING_METHODS] = $shippingMethods;
+		}
 
 		WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		$this->render(

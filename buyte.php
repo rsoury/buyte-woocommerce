@@ -271,7 +271,8 @@ class WC_Buyte{
 		$shipping_description = $_POST['buyte_shipping_description'];
 		$shipping_rate = $_POST['buyte_shipping_rate'];
 
-		$method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
+		// $method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
+		$method_title = $payment_type;
 		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
 			update_post_meta( $order_id, '_payment_method_title', $method_title );
 		} else {
@@ -564,7 +565,7 @@ class WC_Buyte{
 	 * @param object $paymentToken
 	 * @return void
 	 */
-	private function create_charge(object $paymentToken){
+	private function create_charge($paymentToken){
 		$request = $this->create_request('charges', array(
 			'source' => $paymentToken->id,
 			'amount' => (int) $paymentToken->amount,
