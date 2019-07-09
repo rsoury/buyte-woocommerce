@@ -34,7 +34,9 @@ class WC_Buyte{
 	const NONCE_NAME = 'buyte-ajax-next-nonce';
 	/* ajax */
 	const AJAX_SUCCESS = 'buyte_success';
-	const AJAX_CART = 'buyte_cart';
+	const AJAX_GET_SHIPPING = 'buyte_shipping';
+	const AJAX_PRODUCT_TO_CART = 'buyte_product_to_cart';
+	const AJAX_PRODUCT_TO_CART_WITH_SHIPPING = 'buyte_product_to_cart_with_shipping';
 	/* api */
 	const API_BASE_URL = 'https://api.buytecheckout.com/v1/';
 
@@ -55,8 +57,12 @@ class WC_Buyte{
 		// Setup admin ajax endpoints
 		add_action( 'wp_ajax_buyte_success', array( $this, 'ajax_buyte_success' ) );
 		add_action( 'wp_ajax_nopriv_buyte_success', array( $this, 'ajax_buyte_success' ) );
-		add_action( 'wp_ajax_buyte_cart', array( $this, 'ajax_buyte_cart' ) );
-		add_action( 'wp_ajax_nopriv_buyte_cart', array( $this, 'ajax_buyte_cart' ) );
+		add_action( 'wp_ajax_buyte_shipping', array( $this, 'ajax_buyte_shipping' ) );
+		add_action( 'wp_ajax_nopriv_buyte_shipping', array( $this, 'ajax_buyte_shipping' ) );
+		add_action( 'wp_ajax_buyte_product_to_cart', array( $this, 'ajax_buyte_product_to_cart' ) );
+		add_action( 'wp_ajax_nopriv_buyte_product_to_cart', array( $this, 'ajax_buyte_product_to_cart' ) );
+		add_action( 'wp_ajax_buyte_product_to_cart_with_shipping', array( $this, 'ajax_buyte_product_to_cart_with_shipping' ) );
+		add_action( 'wp_ajax_nopriv_buyte_product_to_cart_with_shipping', array( $this, 'ajax_buyte_product_to_cart_with_shipping' ) );
 
 		// Handle Settings Tab
 		$this->handle_config();
@@ -161,17 +167,152 @@ class WC_Buyte{
 		exit;
 	}
 
-	public function ajax_buyte_cart() {
-		// check nonce
-		// $nonce = isset($_GET['nextNonce']) ? $_GET['nextNonce'] : "";
-		// if ( ! wp_verify_nonce( $nonce, self::NONCE_NAME ) ) {
-		// 	header("HTTP/1.1 401 Unauthorized");
-   		// 	exit;
-		// }
+	 /**
+	  * ajax_buyte_product_to_cart
+	  *
+	  * Ajax function handler that accepts product data and creates new cart out of it.
+	  *
+	  * @return void
+	  */
+	public function ajax_buyte_product_to_cart() {
+		WC_Buyte_Config::log("buyte_product_to_cart: Converting product to cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
+		$response = array();
 
-		$options = $this->WC_Buyte_Widget->get_cart_options();
-		wp_send_json($options);
-		exit;
+		try {
+			// Retrieve JSON payload
+			$posted = json_decode(file_get_contents('php://input'));
+			if(!$posted){
+				$posted = json_decode(json_encode($_POST));
+			}
+
+			// check nonce
+			if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
+				header("HTTP/1.1 401 Unauthorized");
+				exit;
+			}
+
+			WC_Buyte_Config::log("buyte_product_to_cart: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
+
+			WC_Buyte_Util::debug_log( $posted );
+
+			$product_id = property_exists($posted, "productId") ? $posted->productId : 0;
+			$quantity = property_exists($posted, "quantity") ? $posted->quantity : 1;
+			$variation_id = property_exists($posted, "variationId") ? $posted->variationId : 0;
+
+			// Convert Product to Cart
+			$this->convert_product_to_cart( $product_id, $quantity, $variation_id );
+
+			$response['result'] = 'success';
+
+			wp_send_json( $response );
+		} catch ( Exception $e ) {
+			WC_Buyte_Util::debug_log($e);
+
+			$response['result'] = 'cannot_convert_product_to_cart';
+
+			wp_send_json( $data );
+		}
+	}
+
+	/**
+	 * ajax_buyte_product_to_cart_with_shipping
+	 *
+	 * Ajax function handler that accepts product data and shipping address data.
+	 * Converts product to new cart and responds with shipping rates for the new cart.
+	 *
+	 * @return void
+	 */
+	public function ajax_buyte_product_to_cart_with_shipping() {
+		WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Converting product to cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
+		$response = array();
+
+		try {
+			// Retrieve JSON payload
+			$posted = json_decode(file_get_contents('php://input'));
+			if(!$posted){
+				$posted = json_decode(json_encode($_POST));
+			}
+
+			// check nonce
+			// if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
+			// 	header("HTTP/1.1 401 Unauthorized");
+			// 	exit;
+			// }
+
+			// WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
+
+			WC_Buyte_Util::debug_log( $posted );
+
+			$product_id = property_exists($posted, "productId") ? $posted->productId : 0;
+			$quantity = property_exists($posted, "quantity") ? $posted->quantity : 1;
+			$variation_id = property_exists($posted, "variationId") ? $posted->variationId : 0;
+
+			// Convert Product to Cart
+			$this->convert_product_to_cart( $product_id, $quantity, $variation_id );
+
+			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Converted product to cart. Getting shipping from cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
+
+			// Get shipping
+			$shippingResponse = $this->get_shipping_from_cart( $posted );
+
+			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Successfully retrieved shipping response", WC_Buyte_Config::LOG_LEVEL_INFO);	
+
+			$response['result'] = 'success';
+
+			$response = array_merge($response, $shippingResponse);
+
+			wp_send_json( $response );
+		} catch ( Exception $e ) {
+			WC_Buyte_Util::debug_log($e);
+
+			$response['result'] = 'failed_product_to_cart_with_shipping';
+
+			wp_send_json( $data );
+		}
+	}
+
+	/**
+	 * ajax_buyte_shipping
+	 *
+	 * Accepts shipping address data and responds with shipping rates for the current cart.
+	 *
+	 * @return void
+	 */
+	public function ajax_buyte_shipping() {
+		WC_Buyte_Config::log("buyte_shipping: Getting shipping response...", WC_Buyte_Config::LOG_LEVEL_INFO);
+		$response = array();
+
+		try {
+			// Retrieve JSON payload
+			$posted = json_decode(file_get_contents('php://input'));
+			if(!$posted){
+				$posted = json_decode(json_encode($_POST));
+			}
+
+			// check nonce
+			// if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
+			// 	header("HTTP/1.1 401 Unauthorized");
+			// 	exit;
+			// }
+
+			// WC_Buyte_Config::log("buyte_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
+
+			WC_Buyte_Util::debug_log( $posted );
+
+			$data = $this->get_shipping_from_cart( $posted );
+
+			WC_Buyte_Config::log("buyte_shipping: Successfully retrieved shipping response", WC_Buyte_Config::LOG_LEVEL_INFO);
+
+			$data['result'] = 'success';
+
+			wp_send_json( $data );
+		} catch ( Exception $e ) {
+			WC_Buyte_Util::debug_log($e);
+
+			$data['result'] = 'invalid_shipping_address';
+
+			wp_send_json( $data );
+		}
 	}
 
 	/**
@@ -309,6 +450,151 @@ class WC_Buyte{
 	}
 
 	/**
+	 * convert_product_to_cart
+	 *
+	 * Convert the single product into a cart where shipping/tax/fees can be calculated by Woocommerce.
+	 *
+	 * @param [int] $product_id
+	 * @param integer $qty
+	 * @param integer $variation_id
+	 * @return void
+	 */
+	public function convert_product_to_cart( $product_id, $qty = 1, $variation_id = 0 ) {
+		if( empty($product_id) ){
+			throw new Exception("Product ID not provided");
+		}
+
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
+		WC()->shipping->reset_shipping();
+
+		// First empty the cart to prevent wrong calculation.
+		WC()->cart->empty_cart();
+
+		if (empty( $variation_id )) {
+			WC()->cart->add_to_cart( $product->get_id(), $qty );
+		} else {
+			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id );
+		}
+
+		WC()->cart->calculate_totals();
+	}
+
+	/**
+	 * get_shipping_from_cart
+	 *
+	 * Get shipping methods from current cart.
+	 * Depending on the items and the customer address, shipping options may change.
+	 *
+	 * @param [object] $posted
+	 * @return array
+	 */
+	public function get_shipping_from_cart( $posted ){
+		$this->calculate_shipping( $posted );
+
+		// Set the shipping options.
+		$data     = array();
+		$packages = WC()->shipping->get_packages();
+
+		if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
+			foreach ( $packages as $package_key => $package ) {
+				if ( empty( $package['rates'] ) ) {
+					throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce' ) );
+				}
+
+				foreach ( $package['rates'] as $key => $rate ) {
+					$data['shippingMethods'][] = array(
+						'id'     => $rate->id,
+						'label'  => $rate->label,
+						'description' => '',
+						'rate' => WC_Buyte_Util::get_amount( $rate->cost ),
+					);
+				}
+			}
+		} else {
+			throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce' ) );
+		}
+
+		if ( isset( $data[0] ) ) {
+			// Auto select the first shipping method.
+			WC()->session->set( 'chosen_shipping_methods', array( $data[0]['id'] ) );
+		}
+
+		WC()->cart->calculate_totals();
+
+		return $data;
+	}
+
+	/**
+	 * Calculate and set shipping method.
+	 */
+	protected function calculate_shipping( $address ) {
+		$country   = $address->country;
+		$state     = $address->state;
+		$postcode  = $address->postcode;
+		$city      = $address->city;
+		$address_1 = $address->address;
+		$address_2 = $address->address_2;
+		$wc_states = WC()->countries->get_states( $country );
+
+		/**
+		 * In some versions of Chrome, state can be a full name. So we need
+		 * to convert that to abbreviation as WC is expecting that.
+		 */
+		if ( 2 < strlen( $state ) && ! empty( $wc_states ) ) {
+			$state = array_search( ucwords( strtolower( $state ) ), $wc_states, true );
+		}
+
+		WC()->shipping->reset_shipping();
+
+		if ( $postcode && WC_Validation::is_postcode( $postcode, $country ) ) {
+			$postcode = wc_format_postcode( $postcode, $country );
+		}
+
+		if ( $country ) {
+			WC()->customer->set_location( $country, $state, $postcode, $city );
+			WC()->customer->set_shipping_location( $country, $state, $postcode, $city );
+		} else {
+			WC_Buyte_Util::is_wc_lt( '3.0' ) ? WC()->customer->set_to_base() : WC()->customer->set_billing_address_to_base();
+			WC_Buyte_Util::is_wc_lt( '3.0' ) ? WC()->customer->set_shipping_to_base() : WC()->customer->set_shipping_address_to_base();
+		}
+
+		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
+			WC()->customer->calculated_shipping( true );
+		} else {
+			WC()->customer->set_calculated_shipping( true );
+			WC()->customer->save();
+		}
+
+		$packages = array();
+
+		$packages[0]['contents']                 = WC()->cart->get_cart();
+		$packages[0]['contents_cost']            = 0;
+		$packages[0]['applied_coupons']          = WC()->cart->applied_coupons;
+		$packages[0]['user']['ID']               = get_current_user_id();
+		$packages[0]['destination']['country']   = $country;
+		$packages[0]['destination']['state']     = $state;
+		$packages[0]['destination']['postcode']  = $postcode;
+		$packages[0]['destination']['city']      = $city;
+		$packages[0]['destination']['address']   = $address_1;
+		$packages[0]['destination']['address_2'] = $address_2;
+
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( $item['data']->needs_shipping() ) {
+				if ( isset( $item['line_total'] ) ) {
+					$packages[0]['contents_cost'] += $item['line_total'];
+				}
+			}
+		}
+
+		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+
+		WC()->shipping->calculate_shipping( $packages );
+	}
+
+	/**
 	 * create_order
 	 *
 	 * Creates new Post Data to use with session cart to "natively" process checkout
@@ -317,7 +603,7 @@ class WC_Buyte{
 	 * @param object $charge
 	 * @return void
 	 */
-	private function create_order($charge){
+	protected function create_order($charge){
 		if(!property_exists($charge, 'id')){
 			$errMsg = "No Buyte charge Id";
 			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
@@ -473,7 +759,7 @@ class WC_Buyte{
 	 * @param object $charge
 	 * @return void
 	 */
-	private function create_order_from_cart($charge){
+	protected function create_order_from_cart($charge){
 		// Cart is already set here.
 		if ( WC()->cart->is_empty() ) {
 			wp_send_json_error( __( 'Empty cart', 'woocommerce' ) );
@@ -493,7 +779,7 @@ class WC_Buyte{
 	 * @param integer $quantity
 	 * @return void
 	 */
-	private function create_order_from_product($charge, $product_id, $variation_id = 0, $quantity = 1){
+	protected function create_order_from_product($charge, $product_id, $variation_id = 0, $quantity = 1){
 		// Reset any shipping settings
 		WC()->shipping->reset_shipping();
 		// First empty the cart to prevent wrong calculation.
@@ -515,7 +801,7 @@ class WC_Buyte{
 	 * @param array $body
 	 * @return void
 	 */
-	private function create_request($path, $body){
+	protected function create_request($path, $body){
 		$data = json_encode($body);
 		if(!$data){
 			throw new Exception('Cannot encode Buyte request body.');
@@ -544,7 +830,7 @@ class WC_Buyte{
 	 * @param [type] $request
 	 * @return void
 	 */
-	private function execute_request($request) {
+	protected function execute_request($request) {
 		$url = $request['url'];
 		$args = $request['args'];
 		$response = wp_remote_post($url, $args);
@@ -565,7 +851,7 @@ class WC_Buyte{
 	 * @param object|stdClass $paymentToken
 	 * @return void
 	 */
-	private function create_charge($paymentToken){
+	protected function create_charge($paymentToken){
 		$request = $this->create_request('charges', array(
 			'source' => $paymentToken->id,
 			'amount' => (int) $paymentToken->amount,

@@ -46,7 +46,8 @@ class WC_Buyte_Widget{
 		$options[self::PROPERTY_WIDGET_ID] = $this->get_widget_id();
 		$options[self::PROPERTY_OPTIONS] = (object) array(
 			'dark' => $this->is_on_dark_background(),
-			'enabled' => true
+			'enabled' => true,
+			'shipping' => false
 		);
 		return $options;
 	}
@@ -65,7 +66,12 @@ class WC_Buyte_Widget{
 
 		$items = array();
 
+		$wc_shipping_enabled = wc_shipping_enabled();
+		$shipping_enabled = false;
+
+
 		// Add products from cart
+		// Set shipping enabled if any product in cart needs shipping and it's enabled store wide.
 		if(!empty($cart)){
 			foreach($cart as $item) {
 				$item_name = "";
@@ -76,12 +82,18 @@ class WC_Buyte_Widget{
 					$item_amount = WC_Buyte_Util::get_amount(
 						WC_Buyte_Util::is_wc_lt( '3.0' ) ? $variation->price : $variation->get_price()
 					);
+					if( $wc_shipping_enabled && $variation->needs_shipping() ){
+						$shipping_enabled = true;
+					}
 				}else{
 					$product = wc_get_product($item['product_id']);
 					$item_name = WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->name : $product->get_name();
 					$item_amount = WC_Buyte_Util::get_amount(
 						WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->price : $product->get_price()
 					);
+					if( $wc_shipping_enabled && $product->needs_shipping() ){
+						$shipping_enabled = true;
+					}
 				}
 				array_push($items, (object) array(
 					'name' => $item_name,
@@ -145,6 +157,7 @@ class WC_Buyte_Widget{
 		}
 
 		$options[self::PROPERTY_ITEMS] = $items;
+		$options[self::PROPERTY_OPTIONS]->shipping = $shipping_enabled;
 
 		return $options;
 	}
@@ -167,6 +180,10 @@ class WC_Buyte_Widget{
 			return;
 		}
 
+		if( !$product->is_in_stock()) {
+			return;
+		}
+
 		$product_item = array(
 			(object) array(
 				'name' => WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->name : $product->get_name(),
@@ -178,17 +195,8 @@ class WC_Buyte_Widget{
 
 		$options[self::PROPERTY_ITEMS] = $product_item;
 
-		WC_Buyte_Util::debug_log("Shipping enabled: " . (wc_shipping_enabled() ? "true" : "false") . " , Product needs shipping: " . ($product->needs_shipping() ? "true" : "false"));
 		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
-			$wcShippingMethods = WC()->shipping->get_shipping_methods();
-			WC_Buyte_Util::debug_log($methods);
-			$shippingMethods = array();
-			foreach( $wcShippingMethods as $method ) {
-				if( $method->enabled ){
-					// ...
-				}
-			}
-			$options[self::PROPERTY_SHIPPING_METHODS] = $shippingMethods;
+			$options[self::PROPERTY_OPTIONS]->shipping = true;
 		}
 
 		WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
