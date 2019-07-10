@@ -30,8 +30,6 @@ class WC_Buyte{
 
 	/* version number */
 	const VERSION = '0.1.0';
-	/* nonce name */
-	const NONCE_NAME = 'buyte-ajax-next-nonce';
 	/* ajax */
 	const AJAX_SUCCESS = 'buyte_success';
 	const AJAX_GET_SHIPPING = 'buyte_shipping';
@@ -103,20 +101,14 @@ class WC_Buyte{
 	 * @return void
 	 */
 	public function ajax_buyte_success() {
+		check_ajax_referer( self::AJAX_SUCCESS, 'security' );
+
 		WC_Buyte_Config::log("buyte_success: Processing Buyte checkout...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		// Retrieve JSON payload
 		$data = json_decode(file_get_contents('php://input'));
 		if(!$data){
 			$data = json_decode(json_encode($_POST));
 		}
-
-		// check nonce
-		if ( ! wp_verify_nonce( $data->nextNonce, self::NONCE_NAME ) ) {
-			header("HTTP/1.1 401 Unauthorized");
-   			exit;
-		}
-
-		WC_Buyte_Config::log("buyte_success: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 		// Get charge
 		$charge = $this->create_charge($data->paymentToken);
@@ -145,6 +137,8 @@ class WC_Buyte{
 	  * @return void
 	  */
 	public function ajax_buyte_product_to_cart() {
+		check_ajax_referer( self::AJAX_PRODUCT_TO_CART, 'security' );
+
 		WC_Buyte_Config::log("buyte_product_to_cart: Converting product to cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		$response = array();
 
@@ -154,14 +148,6 @@ class WC_Buyte{
 			if(!$posted){
 				$posted = json_decode(json_encode($_POST));
 			}
-
-			// check nonce
-			if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
-				header("HTTP/1.1 401 Unauthorized");
-				exit;
-			}
-
-			WC_Buyte_Config::log("buyte_product_to_cart: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			WC_Buyte_Util::debug_log( $posted );
 
@@ -195,6 +181,8 @@ class WC_Buyte{
 	 * @return void
 	 */
 	public function ajax_buyte_product_to_cart_with_shipping() {
+		check_ajax_referer( self::AJAX_PRODUCT_TO_CART_WITH_SHIPPING, 'security' );
+
 		WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Converting product to cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		$response = array();
 
@@ -204,14 +192,6 @@ class WC_Buyte{
 			if(!$posted){
 				$posted = json_decode(json_encode($_POST));
 			}
-
-			// check nonce
-			if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
-				header("HTTP/1.1 401 Unauthorized");
-				exit;
-			}
-
-			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			WC_Buyte_Util::debug_log( $posted );
 
@@ -251,6 +231,8 @@ class WC_Buyte{
 	 * @return void
 	 */
 	public function ajax_buyte_shipping() {
+		check_ajax_referer( self::AJAX_GET_SHIPPING, 'security' );
+
 		WC_Buyte_Config::log("buyte_shipping: Getting shipping response...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		$response = array();
 
@@ -260,14 +242,6 @@ class WC_Buyte{
 			if(!$posted){
 				$posted = json_decode(json_encode($_POST));
 			}
-
-			// check nonce
-			if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
-				header("HTTP/1.1 401 Unauthorized");
-				exit;
-			}
-
-			WC_Buyte_Config::log("buyte_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			WC_Buyte_Util::debug_log( $posted );
 

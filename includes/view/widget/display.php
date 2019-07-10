@@ -1,8 +1,4 @@
 <!-- Buyte Checkout Widget - For more info visit: https://buytecheckout.com/ -->
-<?php
-	$ajaxurl = admin_url( 'admin-ajax.php' );
-	$nextNonce = wp_create_nonce( WC_Buyte::NONCE_NAME );
-?>
 <div id="buyte-checkout-widget"></div>
 <script type="text/javascript" src="https://js.buytecheckout.com/v1/"></script>
 <!-- <script type="text/javascript" src="https://js.buytecheckout.com/dev/v1/index.js"></script> -->

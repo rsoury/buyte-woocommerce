@@ -4,9 +4,17 @@
 
 (function($) {
 	var config = {
-		nextNonce: "<?php echo $nextNonce; ?>",
+		nonce: {
+			getShipping:
+				"<?php echo wp_create_nonce(WC_Buyte::AJAX_GET_SHIPPING); ?>",
+			productToCartWithShipping:
+				"<?php echo wp_create_nonce(WC_Buyte::AJAX_PRODUCT_TO_CART_WITH_SHIPPING); ?>",
+			productToCart:
+				"<?php echo wp_create_nonce(WC_Buyte::AJAX_PRODUCT_TO_CART); ?>",
+			success: "<?php echo wp_create_nonce(WC_Buyte::AJAX_SUCCESS); ?>"
+		},
 		rawBuyteSettings: "<?php echo $buyte_settings; ?>",
-		endpoint: "<?php echo $ajaxurl; ?>",
+		endpoint: "<?php echo admin_url( 'admin-ajax.php' ); ?>",
 		actions: {
 			getShipping: "<?php echo WC_Buyte::AJAX_GET_SHIPPING; ?>",
 			productToCartWithShipping:
@@ -78,7 +86,7 @@
 
 				var params = {
 					action: config.actions.getShipping,
-					nextNonce: config.nextNonce,
+					security: config.nonce.getShipping,
 					country: country,
 					state: state,
 					postcode: postcode,
@@ -89,6 +97,7 @@
 				// console.log(params);
 				if (config.productId > 0) {
 					params.action = config.actions.productToCartWithShipping;
+					params.security = config.nonce.productToCartWithShipping;
 					params.productId = config.productId;
 					params.variationId = config.variationId;
 					params.quantity = config.quantity;
@@ -116,7 +125,7 @@
 			window.Buyte("onAuthentication", function() {
 				var params = {
 					action: config.actions.productToCartParams,
-					nextNonce: config.nextNonce,
+					security: config.nonce.productToCartParams,
 					productId: config.productId,
 					variationId: config.variationId,
 					quantity: config.quantity
@@ -138,7 +147,7 @@
 			// on successful charge, redirect to received confirmation page.
 			var params = {
 				action: config.actions.success,
-				nextNonce: config.nextNonce,
+				security: config.nonce.success,
 				paymentToken: paymentToken
 			};
 			// console.log(params);
