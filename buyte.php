@@ -118,46 +118,12 @@ class WC_Buyte{
 
 		WC_Buyte_Config::log("buyte_success: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
-		// Define variables
-		$product_id = property_exists($data, 'productId') ? $data->productId : 0;
-		$variation_id = property_exists($data, 'variationId') ? $data->variationId : 0;
-		$quantity = property_exists($data, 'quantity') ? absint( $data->quantity ) : 1;
-
-		// Ensure price of product and amount authorised are the same.
-		if(!empty($product_id)){
-			$product = wc_get_product($product_id);
-			$price = 0;
-			if(!empty($variation_id)){
-				$variation = new WC_Product_Variation($variation_id);
-				$price = WC_Buyte_Util::get_amount(
-					WC_Buyte_Util::is_wc_lt( '3.0' ) ? $variation->price : $variation->get_price()
-				);
-			}else{
-				$price = WC_Buyte_Util::get_amount(
-					WC_Buyte_Util::is_wc_lt( '3.0' ) ? $product->price : $product->get_price()
-				);
-			}
-			if($price > $data->paymentToken->amount){
-				header("HTTP/1.1 400 Bad Request");
-				wp_send_json_error(array(  // send JSON back
-					'error' => "Price of product/variation does not match authorised payment amount."
-				));
-				exit;
-			}
-		}
-
-		WC_Buyte_Config::log("buyte_success: Price check passed.", WC_Buyte_Config::LOG_LEVEL_INFO);
-
 		// Get charge
 		$charge = $this->create_charge($data->paymentToken);
 		WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
 		if( property_exists( $charge, 'id' ) ){
 			// Order functions use a WC checkout method that sends a redirect url to the frontend for us.
-			if( empty( $product_id ) ){
-				$this->create_order_from_cart( $charge );
-			} else {
-				$this->create_order_from_product( $charge, $product_id, $variation_id, $quantity );
-			}
+			$this->create_order( $charge );
 			WC_Buyte_Config::log("buyte_success: Order created and confirmation url sent.", WC_Buyte_Config::LOG_LEVEL_INFO);
 			exit;
 		}else{
@@ -379,7 +345,7 @@ class WC_Buyte{
 	 *
 	 * Ensures Buyte Gateway only available when order params inclure a Buyte Charge Id.
 	 *
-	 * @param [type] $gateways
+	 * @param array $gateways
 	 * @return void
 	 */
 	public function gateway_availability($gateways){
@@ -414,7 +380,7 @@ class WC_Buyte{
 	 *
 	 * Adds Buyte related metadata to the order
 	 *
-	 * @param [type] $order_id
+	 * @param integer $order_id
 	 * @return void
 	 */
 	public function add_order_meta( $order_id ){
@@ -428,9 +394,6 @@ class WC_Buyte{
 		$payment_type = $_POST['buyte_payment_type'];
 		$provider_name = $_POST['buyte_provider_name'];
 		$provider_reference = $_POST['buyte_provider_reference'];
-		$shipping_name = $_POST['buyte_shipping_name'];
-		$shipping_description = $_POST['buyte_shipping_description'];
-		$shipping_rate = $_POST['buyte_shipping_rate'];
 
 		// $method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
 		$method_title = $payment_type;
@@ -447,26 +410,6 @@ class WC_Buyte{
 		// Set Provider details
 		update_post_meta( $order_id, '_buyte_provider_name', $provider_name );
 		update_post_meta( $order_id, '_buyte_provider_reference', $provider_reference );
-
-		// Set shipping information
-		update_post_meta( $order_id, '_buyte_shipping_name', $shipping_name );
-		update_post_meta( $order_id, '_buyte_shipping_description', $shipping_description );
-		update_post_meta( $order_id, '_buyte_shipping_rate', $shipping_rate );
-		// Set order note
-		$order->add_order_note("
-			Shipping Method:
-				Name: <strong>". $shipping_name ."</strong>
-				Description: <strong>". $shipping_description ."</strong>
-				Rate: <strong>". WC_Buyte_Util::get_price( $shipping_rate, true, true ) ."</strong>
-		");
-		// Set order shipping totals post order creation.
-		if(!empty( $shipping_rate )){
-			$shipping_total = WC_Buyte_Util::get_price( $shipping_rate );
-			$total = $order->get_total() + $shipping_total;
-			$order->set_shipping_total( $shipping_total );
-			$order->set_total( $total );
-			$order->save();
-		}
 	}
 
 	/**
@@ -474,7 +417,7 @@ class WC_Buyte{
 	 *
 	 * Convert the single product into a cart where shipping/tax/fees can be calculated by Woocommerce.
 	 *
-	 * @param [int] $product_id
+	 * @param integer $product_id
 	 * @param integer $qty
 	 * @param integer $variation_id
 	 * @return void
@@ -557,7 +500,7 @@ class WC_Buyte{
 	 * Get shipping methods from current cart.
 	 * Depending on the items and the customer address, shipping options may change.
 	 *
-	 * @param [object] $posted
+	 * @param object $posted
 	 * @return array
 	 */
 	public function get_shipping_from_cart( $posted ){
@@ -674,16 +617,28 @@ class WC_Buyte{
 	 * @param object $charge
 	 * @return void
 	 */
-	protected function create_order($charge){
+	protected function create_order( $charge ){
+		// Cart is already set here.
+		if ( WC()->cart->is_empty() ) {
+			$errMsg = "Empty cart";
+			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
+			throw new Exception($errMsg);
+		}
+
 		if(!property_exists($charge, 'id')){
 			$errMsg = "No Buyte charge Id";
 			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
 			throw new Exception($errMsg);
 		}
+
 		if(!property_exists($charge, 'customer')){
 			$errMsg = "No customer information in Buyte charge";
 			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
 			throw new Exception($errMsg);
+		}
+
+		if( isset($charge->source->shippingMethod) ){
+			$this->update_shipping_method( $charge->source->shippingMethod );
 		}
 
 		$customer = $charge->customer;
@@ -763,7 +718,6 @@ class WC_Buyte{
 		// Comments
 		$comments = "Checkout completed with Buyte";
 		$payment_type = '';
-		$shipping_postdata = array();
 		if(isset($charge->source->paymentMethod->name)){
 			$payment_type = $charge->source->paymentMethod->name;
 			$comments .= "'s " . $charge->source->paymentMethod->name . ".";
@@ -772,11 +726,6 @@ class WC_Buyte{
 			$shipping_method_name = isset($charge->source->shippingMethod->label) ? $charge->source->shippingMethod->label : '';
 			$shipping_method_description = isset($charge->source->shippingMethod->description) ? $charge->source->shippingMethod->description : '';
 			$shipping_method_rate = isset($charge->source->shippingMethod->rate) ? $charge->source->shippingMethod->rate : 0;
-			$shipping_postdata = array(
-				'buyte_shipping_name' => $shipping_method_name,
-				'buyte_shipping_description' => $shipping_method_description,
-				'buyte_shipping_rate' => $shipping_method_rate
-			);
 		}
 
 		// Recreate $_POST for checkout
@@ -800,11 +749,7 @@ class WC_Buyte{
 			);
 		}
 
-		if(!empty($shipping_postdata)){
-			$postdata += $shipping_postdata;
-		}
-
-		WC_Buyte_Config::log("create_order: Post data set", WC_Buyte_Config::LOG_LEVEL_DEBUG);
+		WC_Buyte_Config::log("create_order: Post data set", WC_Buyte_Config::LOG_LEVEL_INFO);
 		WC_Buyte_Config::log($postdata, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
 		// Required to process checkout using WC
@@ -819,48 +764,50 @@ class WC_Buyte{
 
 		WC()->checkout()->process_checkout();
 
-		return;
+		die( 0 );
 	}
 
 	/**
-	 * create_order_from_cart
+	 * update_shipping_method
 	 *
-	 * Uses existing cart to process checkout and create order
+	 * Update the selected shipping method.
 	 *
-	 * @param object $charge
 	 * @return void
 	 */
-	protected function create_order_from_cart($charge){
-		// Cart is already set here.
-		if ( WC()->cart->is_empty() ) {
-			wp_send_json_error( __( 'Empty cart', 'woocommerce' ) );
-			exit;
+
+	/**
+	 * update_shipping_method
+	 *
+	 * Update the selected shipping method.
+	 *
+	 * @param mixed $shipping_method
+	 * @return void
+	 */
+	protected function update_shipping_method( $shipping_method ) {
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		return $this->create_order($charge);
-	}
-	/**
-	 * create_order_from_product
-	 *
-	 * Empties existing cart, creates new cart with given product/variant to process checkout and create order
-	 *
-	 * @param object $charge
-	 * @param integer $product_id
-	 * @param integer $variation_id
-	 * @param integer $quantity
-	 * @return void
-	 */
-	protected function create_order_from_product($charge, $product_id, $variation_id = 0, $quantity = 1){
-		// Reset any shipping settings
-		WC()->shipping->reset_shipping();
-		// First empty the cart to prevent wrong calculation.
-		WC()->cart->empty_cart();
-		// Create a cart
-		WC()->cart->add_to_cart( $product_id, $quantity, $variation_id );
-		// Calculate cart totals
-		WC()->cart->calculate_totals();
+		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
 
-		return $this->create_order($charge);
+		if( is_object( $shipping_method ) ){
+			$i = 0;
+			$vars = get_object_vars( $shipping_method );
+			foreach( $vars as $key => $value ) {
+				$chosen_shipping_methods[ $i ] = wc_clean( $value );
+				$i ++;
+			}
+		} else if ( is_array( $shipping_method ) ) {
+			foreach ( $shipping_method as $i => $value ) {
+				$chosen_shipping_methods[ $i ] = wc_clean( $value );
+			}
+		} else {
+			$chosen_shipping_methods = array( $shipping_method );
+		}
+
+		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+
+		WC()->cart->calculate_totals();
 	}
 
 	/**
@@ -898,7 +845,7 @@ class WC_Buyte{
 	 *
 	 * Takes a Request arg sourced from create_request to execute an network request to the Buyte API
 	 *
-	 * @param [type] $request
+	 * @param array $request
 	 * @return void
 	 */
 	protected function execute_request($request) {

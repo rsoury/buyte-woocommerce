@@ -139,9 +139,6 @@
 			var params = {
 				action: config.actions.success,
 				nextNonce: config.nextNonce,
-				productId: config.productId,
-				variationId: config.variationId,
-				quantity: config.quantity,
 				paymentToken: paymentToken
 			};
 			// console.log(params);
