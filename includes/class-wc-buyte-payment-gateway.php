@@ -7,9 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Buyte_Payment_Gateway extends WC_Payment_Gateway {
 
     public function __construct() {
-        $this->id             = WC_Buyte_Config::get_id();
-        $this->title   = __( WC_Buyte_Config::get_label(), 'woocommerce' );
-        $this->method_title   = __( WC_Buyte_Config::get_label(), 'woocommerce' );
+        $this->id = WC_Buyte_Config::get_id();
+        $this->title = __( WC_Buyte_Config::get_label(), 'woocommerce' );
+        $this->method_title = __( WC_Buyte_Config::get_label(), 'woocommerce' );
         $this->has_fields = false;
         $this->description = __( WC_Buyte_Config::get_description(), 'woocommerce' );
         $this->method_description = __( WC_Buyte_Config::get_description(), 'woocommerce' );

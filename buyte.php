@@ -165,6 +165,7 @@ class WC_Buyte{
 		}
 
 		wp_send_json_error(array(  // send JSON back
+			'result' => 'checkout_failed',
 			'error' => 'Could not process Buyte checkout'
 		));
 		exit;
@@ -203,9 +204,11 @@ class WC_Buyte{
 			$variation_id = property_exists($posted, "variationId") ? $posted->variationId : 0;
 
 			// Convert Product to Cart
-			$this->convert_product_to_cart( $product_id, $quantity, $variation_id );
+			$to_cart_response = $this->convert_product_to_cart( $product_id, $quantity, $variation_id );
 
 			$response['result'] = 'success';
+
+			$response = array_merge( $response, $to_cart_response );
 
 			wp_send_json( $response );
 		} catch ( Exception $e ) {
@@ -213,7 +216,7 @@ class WC_Buyte{
 
 			$response['result'] = 'cannot_convert_product_to_cart';
 
-			wp_send_json( $data );
+			wp_send_json( $response );
 		}
 	}
 
@@ -237,12 +240,12 @@ class WC_Buyte{
 			}
 
 			// check nonce
-			// if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
-			// 	header("HTTP/1.1 401 Unauthorized");
-			// 	exit;
-			// }
+			if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
+				header("HTTP/1.1 401 Unauthorized");
+				exit;
+			}
 
-			// WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
+			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			WC_Buyte_Util::debug_log( $posted );
 
@@ -251,18 +254,18 @@ class WC_Buyte{
 			$variation_id = property_exists($posted, "variationId") ? $posted->variationId : 0;
 
 			// Convert Product to Cart
-			$this->convert_product_to_cart( $product_id, $quantity, $variation_id );
+			$to_cart_response = $this->convert_product_to_cart( $product_id, $quantity, $variation_id );
 
-			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Converted product to cart. Getting shipping from cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
+			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Successfully converted product to cart. Getting shipping from cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			// Get shipping
-			$shippingResponse = $this->get_shipping_from_cart( $posted );
+			$shipping_response = $this->get_shipping_from_cart( $posted );
 
 			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Successfully retrieved shipping response", WC_Buyte_Config::LOG_LEVEL_INFO);	
 
 			$response['result'] = 'success';
 
-			$response = array_merge($response, $shippingResponse);
+			$response = array_merge( $response, $shipping_response, $to_cart_response );
 
 			wp_send_json( $response );
 		} catch ( Exception $e ) {
@@ -270,7 +273,7 @@ class WC_Buyte{
 
 			$response['result'] = 'failed_product_to_cart_with_shipping';
 
-			wp_send_json( $data );
+			wp_send_json( $response );
 		}
 	}
 
@@ -293,28 +296,30 @@ class WC_Buyte{
 			}
 
 			// check nonce
-			// if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
-			// 	header("HTTP/1.1 401 Unauthorized");
-			// 	exit;
-			// }
+			if ( ! wp_verify_nonce( $posted->nextNonce, self::NONCE_NAME ) ) {
+				header("HTTP/1.1 401 Unauthorized");
+				exit;
+			}
 
-			// WC_Buyte_Config::log("buyte_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
+			WC_Buyte_Config::log("buyte_shipping: Nonce verified.", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			WC_Buyte_Util::debug_log( $posted );
 
-			$data = $this->get_shipping_from_cart( $posted );
+			$shipping_response = $this->get_shipping_from_cart( $posted );
 
 			WC_Buyte_Config::log("buyte_shipping: Successfully retrieved shipping response", WC_Buyte_Config::LOG_LEVEL_INFO);
 
-			$data['result'] = 'success';
+			$response['result'] = 'success';
 
-			wp_send_json( $data );
+			$response = array_merge( $response, $shipping_response );
+
+			wp_send_json( $response );
 		} catch ( Exception $e ) {
 			WC_Buyte_Util::debug_log($e);
 
-			$data['result'] = 'invalid_shipping_address';
+			$response['result'] = 'invalid_shipping_address';
 
-			wp_send_json( $data );
+			wp_send_json( $response );
 		}
 	}
 
@@ -475,7 +480,7 @@ class WC_Buyte{
 	 * @return void
 	 */
 	public function convert_product_to_cart( $product_id, $qty = 1, $variation_id = 0 ) {
-		if( empty($product_id) ){
+		if( empty( $product_id ) ){
 			throw new Exception("Product ID not provided");
 		}
 
@@ -489,12 +494,61 @@ class WC_Buyte{
 		WC()->cart->empty_cart();
 
 		if (empty( $variation_id )) {
-			WC()->cart->add_to_cart( $product->get_id(), $qty );
+			WC()->cart->add_to_cart( $product_id, $qty );
 		} else {
-			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id );
+			WC()->cart->add_to_cart( $product_id, $qty, $variation_id );
 		}
 
+		// Calculate totals
 		WC()->cart->calculate_totals();
+
+		// return updated items
+		// tax, discounts, fees, etc.
+
+		$data = array();
+		$items = array();
+
+		// Add taxes from cart
+		$tax = WC_Buyte_Util::get_cart_tax();
+		if( !empty( $tax ) ){
+			$items[] = (object) array(
+				'name' => __( "Tax", 'woocommerce' ),
+				'amount' => $tax,
+				'type' => 'tax'
+			);
+		}
+
+		// Add discount from cart
+		$discount = WC_Buyte_Util::get_cart_discount();
+		if( !empty( $discount ) ){
+			$items[] = (object) array(
+				'name' => __( "Discount", 'woocommerce' ),
+				'amount' => $discount,
+				'type' => 'discount'
+			);
+		}
+
+		// Include fees and taxes as display items.
+		$cart_fees = 0;
+		if ( WC_Buyte_Util::is_wc_lt( '3.2' ) ) {
+			$cart_fees = WC()->cart->fees;
+		} else {
+			$cart_fees = WC()->cart->get_fees();
+		}
+		foreach ( $cart_fees as $key => $fee ) {
+			$amount = WC_Buyte_Util::get_amount( $fee->amount );
+			if(!empty( $amount )){
+				$items[] = (object) array(
+					'name' => $fee->name,
+					'amount' => $amount,
+					'type' => 'tax'
+				);
+			}
+		}
+
+		$data['items'] = $items;
+
+		return $data;
 	}
 
 	/**
@@ -605,6 +659,8 @@ class WC_Buyte{
 		}
 
 		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+
+		WC_Buyte_Util::debug_log($packages);
 
 		WC()->shipping->calculate_shipping( $packages );
 	}
@@ -785,7 +841,7 @@ class WC_Buyte{
 	}
 	/**
 	 * create_order_from_product
-	 * 
+	 *
 	 * Empties existing cart, creates new cart with given product/variant to process checkout and create order
 	 *
 	 * @param object $charge

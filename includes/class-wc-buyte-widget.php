@@ -104,38 +104,23 @@ class WC_Buyte_Widget{
 		}
 
 		// Add taxes from cart
-		if( wc_tax_enabled() ){
-			$tax = wc_format_decimal( WC()->cart->tax_total, WC()->cart->dp );
-			$amount = WC_Buyte_Util::get_amount( $tax );
-			if(!empty( $amount )){
-				$items[] = (object) array(
-					'name' => __( "Tax", 'woocommerce' ),
-					'amount' => $amount,
-					'type' => 'tax'
-				);
-			}
+		$tax = WC_Buyte_Util::get_cart_tax();
+		if( !empty($tax) ){
+			$items[] = (object) array(
+				'name' => __( "Tax", 'woocommerce' ),
+				'amount' => $tax,
+				'type' => 'tax'
+			);
 		}
 
-		// Add discounts from cart
-		if ( WC()->cart->has_discount() ) {
-			$discounts = 0;
-			if ( WC_Buyte_Util::is_wc_lt( '3.2' ) ) {
-				$discounts = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
-			} else {
-				$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
-				foreach ( $applied_coupons as $amount ) {
-					$discounts += (float) $amount;
-				}
-			}
-			$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
-			$amount = WC_Buyte_Util::get_amount( $discounts );
-			if(!empty( $amount )){
-				$items[] = (object) array(
-					'name' => __( "Discount", 'woocommerce' ),
-					'amount' => $amount,
-					'type' => 'discount'
-				);
-			}
+		// Add discount from cart
+		$discount = WC_Buyte_Util::get_cart_discount();
+		if( !empty($discount) ){
+			$items[] = (object) array(
+				'name' => __( "Discount", 'woocommerce' ),
+				'amount' => $discount,
+				'type' => 'discount'
+			);
 		}
 
 		// Include fees and taxes as display items.
@@ -228,7 +213,7 @@ class WC_Buyte_Widget{
 			WC_Buyte_Config::log("Could not render. ". self::PROPERTY_PUBLIC_KEY ." does not exist. \n" . print_r($output_options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 			return;
 		}
-		$buyte_settings = json_encode($output_options);
+		$buyte_settings = addslashes(json_encode($output_options));
 		include plugin_dir_path( __FILE__ ) . 'view/widget/display.php';
 	}
 

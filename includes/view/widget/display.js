@@ -1,136 +1,169 @@
+/**
+	This PHP code is editted in it's own JS file to leverage the power of prettier.
+ */
+
 (function($) {
-	var params = {
-		nextNonce: "<?php echo $nextNonce; ?>"
+	var config = {
+		nextNonce: "<?php echo $nextNonce; ?>",
+		rawBuyteSettings: "<?php echo $buyte_settings; ?>",
+		endpoint: "<?php echo $ajaxurl; ?>",
+		actions: {
+			getShipping: "<?php echo WC_Buyte::AJAX_GET_SHIPPING; ?>",
+			productToCartWithShipping:
+				"<?php echo WC_Buyte::AJAX_PRODUCT_TO_CART_WITH_SHIPPING; ?>",
+			productToCart: "<?php echo WC_Buyte::AJAX_PRODUCT_TO_CART; ?>",
+			success: "<?php echo WC_Buyte::AJAX_SUCCESS; ?>"
+		},
+		productId: parseInt(
+			"<?php echo array_key_exists('product_id', $widget_data) ? $widget_data['product_id'] : 0; ?>",
+			10
+		),
+		variationId: 0,
+		quantity: 1
 	};
-	var productId = parseInt(
-		"<?php echo array_key_exists('product_id', $widget_data) ? $widget_data['product_id'] : 0; ?>",
-		10
-	);
-	if (!!productId) {
-		params.productId = productId;
-	}
+
 	window.wc_buyte = {
 		product_variation: function(variationId) {
-			if (!!variationId) {
-				params.variationId = variationId;
-			} else {
-				delete params.variationId;
-			}
+			config.variationId = !!variationId ? variationId : 0;
 		},
 		product_quantity: function(quantity) {
-			if (!!quantity) {
-				params.quantity = quantity;
-			} else {
-				params.quantity = 1;
-			}
+			config.quantity = !!quantity ? quantity : 1;
 		}
 	};
 
-	var rawBuyteSettings = "<?php echo $buyte_settings; ?>";
+	var onError = function(e) {
+		console.error(e);
+		alert(
+			"Could not authorise payment with Buyte. Please contact support."
+		);
+	};
+	var post = function(params, cb, errCb) {
+		if (!errCb) {
+			errCb = onError;
+		}
+		$.ajax({
+			url: config.endpoint,
+			method: "POST",
+			data: params,
+			success: function(data) {
+				if (data.result === "success") {
+					cb(data);
+				} else {
+					errCb(data);
+				}
+			},
+			error: errCb
+		});
+	};
+
 	var buyteSettings = {};
 	try {
-		buyteSettings = JSON.parse(rawBuyteSettings);
+		buyteSettings = JSON.parse(config.rawBuyteSettings);
 	} catch (e) {}
 	// console.log(buyteSettings);
 	window.Buyte("load", buyteSettings);
-	window.Buyte("onAuthorise", function(shippingContact, setShippingMethods) {
-		var addressLines = shippingContact.addressLines || [];
-		var address = addressLines.shift();
-		var address_2 = addressLines.join(", ");
-		var city = shippingContact.locality || "";
-		var state = shippingContact.administrativeArea || "";
-		var postcode = shippingContact.postalCode || "";
-		var country = shippingContact.country || "";
+	window.Buyte("onReady", function(settings) {
+		// onReady get gettings and check if shipping is set.
+		if (settings.options.shipping) {
+			window.Buyte("onShippingRequired", function(shippingContact, done) {
+				// onShippingRequired get shipping details and request shipping rates.
+				// If product id also exists, convert product to cart.
+				var addressLines = shippingContact.addressLines || [];
+				var address = addressLines.shift();
+				var address_2 = addressLines.join(", ");
+				var city = shippingContact.locality || "";
+				var state = shippingContact.administrativeArea || "";
+				var postcode = shippingContact.postalCode || "";
+				var country = shippingContact.countryCode || "";
 
-		if (!!productId) {
-			// is product page.
-			var productToCartParams = {
-				action: buyteSettings.options.shipping
-					? "<?php echo WC_Buyte::AJAX_PRODUCT_TO_CART_WITH_SHIPPING; ?>"
-					: "<?php echo WC_Buyte::AJAX_PRODUCT_TO_CART; ?>",
-				nextNonce: params.nextNonce,
-				productId: params.productId,
-				variationId: params.variationId || null,
-				quantity: params.quantity || 1
-			};
-			if (buyteSettings.options.shipping) {
-				productToCartParams.country = country;
-				productToCartParams.state = state;
-				productToCartParams.postcode = postcode;
-				productToCartParams.city = city;
-				productToCartParams.address = address;
-				productToCartParams.address_2 = address_2;
-			}
-			$.ajax({
-				url: "<?php echo $ajaxurl; ?>",
-				method: "POST",
-				data: productToCartParams,
-				success: function(data) {
-					console.log(data);
-				},
-				error: function(e) {
-					console.error(e);
+				var params = {
+					action: config.actions.getShipping,
+					nextNonce: config.nextNonce,
+					country: country,
+					state: state,
+					postcode: postcode,
+					city: city,
+					address: address,
+					address_2: address_2
+				};
+				// console.log(params);
+				if (config.productId > 0) {
+					params.action = config.actions.productToCartWithShipping;
+					params.productId = config.productId;
+					params.variationId = config.variationId;
+					params.quantity = config.quantity;
 				}
+				post(
+					params,
+					function(data) {
+						if (typeof data.items === "object") {
+							if (data.items.length > 0) {
+								for (var i = 0; i < data.items.length; i++) {
+									window.Buyte("add", data.items[i]);
+								}
+							}
+						}
+						done(data.shippingMethods);
+					},
+					function(e) {
+						onError(e);
+						done();
+					}
+				);
 			});
-		} else if (buyteSettings.options.shipping) {
-			// is cart/checkout page -- cart already set.
-			// since cart already set, only request that needs to be made is for shipping methods if shipping enabled.
-			var shippingParams = {
-				action: "<?php echo WC_Buyte::AJAX_GET_SHIPPING; ?>",
-				nextNonce: params.nextNonce,
-				country: country,
-				state: state,
-				postcode: postcode,
-				city: city,
-				address: address,
-				address_2: address_2
-			};
-			$.ajax({
-				url: "<?php echo $ajaxurl; ?>",
-				method: "POST",
-				data: shippingParams,
-				success: function(data) {
-					console.log(data);
-				},
-				error: function(e) {
-					console.error(e);
-				}
+		} else if (config.productId > 0) {
+			// If shipping disabled but product id exists, onAuthentication convert product to cart.
+			window.Buyte("onAuthentication", function() {
+				var params = {
+					action: config.actions.productToCartParams,
+					nextNonce: config.nextNonce,
+					productId: config.productId,
+					variationId: config.variationId,
+					quantity: config.quantity
+				};
+				post(params, function(data) {
+					if (typeof data.items === "object") {
+						if (data.items.length > 0) {
+							for (var i = 0; i < data.items.length; i++) {
+								window.Buyte("add", data.items[i]);
+							}
+						}
+					}
+				});
 			});
 		}
-	});
-	window.Buyte("onPayment", function(paymentToken, done) {
-		var createOrderParams = {
-			action: "<?php echo WC_Buyte::AJAX_SUCCESS; ?>",
-			nextNonce: params.nextNonce,
-			productId: params.productId,
-			variationId: params.variationId || null,
-			quantity: params.quantity || 1,
-			paymentToken: paymentToken
-		};
-		console.log(createOrderParams);
-		$.ajax({
-			url: "<?php echo $ajaxurl; ?>",
-			method: "POST",
-			data: createOrderParams,
-			success: function(data) {
-				if (data.result === "success") {
+
+		window.Buyte("onPayment", function(paymentToken, done) {
+			// on successful payment, submit payment token to backend for charge creation.
+			// on successful charge, redirect to received confirmation page.
+			var params = {
+				action: config.actions.success,
+				nextNonce: config.nextNonce,
+				productId: config.productId,
+				variationId: config.variationId,
+				quantity: config.quantity,
+				paymentToken: paymentToken
+			};
+			// console.log(params);
+
+			post(
+				params,
+				function(data) {
 					window.location.replace(data.redirect);
-				} else if (data.result === "failure") {
-					console.error(data);
+					done();
+				},
+				function(e) {
+					// We want to either toast an error -- browser alerts might do for now, or redirect to an error page.
+					console.error(e);
 					alert(
 						"Could not checkout with Buyte. Please contact support."
 					);
+					done();
 				}
-				done();
-			},
-			error: function(e) {
-				// We want to either toast an error -- browser alerts might do for now, or redirect to an error page.
-				console.error(e);
-				alert("Could not checkout with Buyte. Please contact support.");
-				done();
-			}
+			);
 		});
 	});
+
 	window.Buyte("onError", function(errorType) {
 		if (errorType === "LOAD_ERROR") {
 			window.Buyte("destroy");
