@@ -54,6 +54,15 @@ class WC_Buyte{
 	public function initialize(){
 		$this->load_dependencies();
 
+		// The earlier we handle these, the better. This way we have access to our public vars.
+		// Handle Settings Tab
+		$this->handle_config();
+		// Handle Widget loads
+		$this->handle_widget();
+
+		// Setup plugin action links -- see plugin page.
+		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
+
 		// Setup admin ajax endpoints
 		add_action( 'wp_ajax_buyte_success', array( $this, 'ajax_buyte_success' ) );
 		add_action( 'wp_ajax_nopriv_buyte_success', array( $this, 'ajax_buyte_success' ) );
@@ -63,12 +72,6 @@ class WC_Buyte{
 		add_action( 'wp_ajax_nopriv_buyte_product_to_cart', array( $this, 'ajax_buyte_product_to_cart' ) );
 		add_action( 'wp_ajax_buyte_product_to_cart_with_shipping', array( $this, 'ajax_buyte_product_to_cart_with_shipping' ) );
 		add_action( 'wp_ajax_nopriv_buyte_product_to_cart_with_shipping', array( $this, 'ajax_buyte_product_to_cart_with_shipping' ) );
-
-		// Handle Settings Tab
-		$this->handle_config();
-
-		// Handle Widget loads
-		$this->handle_widget();
 
 		// Handle Payment Gateway
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'handle_payment_gateway' ) );
@@ -325,6 +328,18 @@ class WC_Buyte{
 		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-util.php';
 		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-payment-gateway.php';
 	}
+
+	/**
+     * Adds plugin action links.
+     *
+     */
+    public function plugin_action_links( $links ) {
+        $plugin_links = array(
+            '<a href="admin.php?page=wc-settings&tab='. $this->WC_Buyte_Config->id .'">' . esc_html__( 'Settings', 'woocommerce' ) . '</a>',
+            '<a href="'. $this->WC_Buyte_Config->settings_website .'" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Website', 'woocommerce' ) . '</a>'
+        );
+        return array_merge( $plugin_links, $links );
+    }
 
 	/**
 	 * Setup and Initiate Config
