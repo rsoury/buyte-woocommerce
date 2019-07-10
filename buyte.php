@@ -637,8 +637,10 @@ class WC_Buyte{
 			throw new Exception($errMsg);
 		}
 
+		$shipping_method = null;
 		if( isset($charge->source->shippingMethod) ){
 			$this->update_shipping_method( $charge->source->shippingMethod );
+			$shipping_method = $charge->source->shippingMethod->id;
 		}
 
 		$customer = $charge->customer;
@@ -669,9 +671,9 @@ class WC_Buyte{
 			'billing_last_name' => $last_name,
 			'shipping_company' => '',
 			'shipping_country' =>
-				isset($customer->shippingAddress->country) ?
-					$customer->shippingAddress->country :
-					(isset($customer->shippingAddress->countryCode) ? $customer->shippingAddress->countryCode : ''),
+				isset($customer->shippingAddress->countryCode) ?
+						$customer->shippingAddress->countryCode :
+						(isset($customer->shippingAddress->country) ? $customer->shippingAddress->country : ''),
 			'shipping_address_1' =>
 				isset($customer->shippingAddress->addressLines) ?
 					(sizeof($customer->shippingAddress->addressLines) > 0 ? $customer->shippingAddress->addressLines[0] : '') :
@@ -688,9 +690,9 @@ class WC_Buyte{
 			$postdata += array(
 				'billing_company' => '',
 				'billing_country' =>
-					isset($customer->billingAddress->country) ?
-						$customer->billingAddress->country :
-						(isset($customer->billingAddress->countryCode) ? $customer->billingAddress->countryCode : ''),
+					isset($customer->billingAddress->countryCode) ?
+						$customer->billingAddress->countryCode :
+						(isset($customer->billingAddress->country) ? $customer->billingAddress->country : ''),
 				'billing_address_1' =>
 					isset($customer->billingAddress->addressLines) ?
 						(sizeof($customer->billingAddress->addressLines) > 0 ? $customer->billingAddress->addressLines[0] : '') :
@@ -732,7 +734,7 @@ class WC_Buyte{
 		$postdata += array(
 			'billing_email' => property_exists($customer, 'emailAddress') ? $customer->emailAddress : null,
 			'billing_phone' => property_exists($customer, 'phoneNumber') ? $customer->phoneNumber : null,
-			'shipping_method' => null,
+			'shipping_method' => $shipping_method,
 			'order_comments' => $comments,
 			'payment_method' => $this->WC_Buyte_Config->id,
 			'ship_to_different_address' => 1,
