@@ -4,8 +4,8 @@
 	$nextNonce = wp_create_nonce( WC_Buyte::NONCE_NAME );
 ?>
 <div id="buyte-checkout-widget"></div>
-<!-- <script type="text/javascript" src="https://js.buytecheckout.com/v1/"></script> -->
-<script type="text/javascript" src="https://js.buytecheckout.com/dev/v1/index.js"></script>
+<script type="text/javascript" src="https://js.buytecheckout.com/v1/"></script>
+<!-- <script type="text/javascript" src="https://js.buytecheckout.com/dev/v1/index.js"></script> -->
 <?php if($page_js): ?>
 	<script type="text/javascript" src="<?php echo $page_js; ?>"></script>
 <?php endif; ?>
