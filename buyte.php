@@ -28,6 +28,8 @@ if(!WC_Buyte::is_woocommerce_active()){
 
 class WC_Buyte{
 
+	/* DEVELOPER MODE */
+	const DEVELOPER_MODE = false;
 	/* version number */
 	const VERSION = '0.1.0';
 	/* ajax */
@@ -37,6 +39,7 @@ class WC_Buyte{
 	const AJAX_PRODUCT_TO_CART_WITH_SHIPPING = 'buyte_product_to_cart_with_shipping';
 	/* api */
 	const API_BASE_URL = 'https://api.buytecheckout.com/v1/';
+	const DEV_API_BASE_URL = 'https://api.dev.buytecheckout.com/v1/';
 
 	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
@@ -103,25 +106,28 @@ class WC_Buyte{
 	public function ajax_buyte_success() {
 		check_ajax_referer( self::AJAX_SUCCESS, 'security' );
 
-		WC_Buyte_Config::log("buyte_success: Processing Buyte checkout...", WC_Buyte_Config::LOG_LEVEL_INFO);
-		// Retrieve JSON payload
-		$data = json_decode(file_get_contents('php://input'));
-		if(!$data){
-			$data = json_decode(json_encode($_POST));
-		}
+		try {
+			WC_Buyte_Config::log("buyte_success: Processing Buyte checkout...", WC_Buyte_Config::LOG_LEVEL_INFO);
+			// Retrieve JSON payload
+			$data = json_decode(file_get_contents('php://input'));
+			if(!$data){
+				$data = json_decode(json_encode($_POST));
+			}
 
-		// Get charge
-		$charge = $this->create_charge($data->paymentToken);
-		WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
-		if( property_exists( $charge, 'id' ) ){
-			// Order functions use a WC checkout method that sends a redirect url to the frontend for us.
-			$this->create_order( $charge );
-			WC_Buyte_Config::log("buyte_success: Order created and confirmation url sent.", WC_Buyte_Config::LOG_LEVEL_INFO);
-			exit;
-		}else{
-			WC_Buyte_Config::log("buyte_success: Charge does not have Id. Contact Buyte Support.", WC_Buyte_Config::LOG_LEVEL_WARN);
+			// Get charge
+			$charge = $this->create_charge($data->paymentToken);
+			WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
+			if( property_exists( $charge, 'id' ) ){
+				// Order functions use a WC checkout method that sends a redirect url to the frontend for us.
+				$this->create_order( $charge );
+				WC_Buyte_Config::log("buyte_success: Order created and confirmation url sent.", WC_Buyte_Config::LOG_LEVEL_INFO);
+				exit;
+			}else{
+				WC_Buyte_Config::log("buyte_success: Charge does not have Id. Contact Buyte Support.", WC_Buyte_Config::LOG_LEVEL_WARN);
+			}
+		} catch ( Exception $e ) {
+			WC_Buyte_Util::debug_log($e);
 		}
-
 		wp_send_json_error(array(  // send JSON back
 			'result' => 'checkout_failed',
 			'error' => 'Could not process Buyte checkout'
@@ -800,7 +806,11 @@ class WC_Buyte{
 		if(!$data){
 			throw new Exception('Cannot encode Buyte request body.');
 		}
-		$url = self::API_BASE_URL . $path;
+		$baseUrl = self::API_BASE_URL;
+		if(self::DEVELOPER_MODE){
+			$baseUrl = self::DEV_API_BASE_URL;
+		}
+		$url = $baseUrl . $path;
 		$headers = array(
 			'Content-Type' => 'application/json',
 			'Authorization' => 'Bearer ' . $this->WC_Buyte_Config->get_secret_key(),
@@ -854,7 +864,7 @@ class WC_Buyte{
 		WC_Buyte_Config::log("create_charge: Attempting to charge Buyte Payment Token: " . $paymentToken->id, WC_Buyte_Config::LOG_LEVEL_INFO);
 		WC_Buyte_Config::log($request, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		$response = $this->execute_request($request);
-		if(empty($response)){
+		if(empty($response) ? true : !property_exists( $response, 'id' )){
 			WC_Buyte_Config::log("create_charge: Could not create charge", WC_Buyte_Config::LOG_LEVEL_FATAL);
 			throw new Exception("Could not create Charge");
 		}
