@@ -215,7 +215,8 @@ class WC_Buyte_Config {
     }
 
     public static function is_developer_mode() {
-        return WC_Admin_Settings::get_option(self::CONFIG_TOGGLE_DEVELOPER_SETTINGS, 'yes') && WC_Admin_Settings::get_option(self::CONFIG_DEVELOPER_MODE, 'yes');
+        return WC_Admin_Settings::get_option(self::CONFIG_TOGGLE_DEVELOPER_SETTINGS, 'no') === 'yes' &&
+            WC_Admin_Settings::get_option(self::CONFIG_DEVELOPER_MODE, 'no') === 'yes';
     }
 
     public static function get_id(){
