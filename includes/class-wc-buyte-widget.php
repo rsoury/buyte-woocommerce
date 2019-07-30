@@ -185,12 +185,13 @@ class WC_Buyte_Widget{
 		}
 
 		WC_Buyte_Config::log("Rendering on product page... \n" . print_r($options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
+		$output_options = $this->output_options($options, array(
+			'product_id' => $product->get_id()
+		));
+		$page_js = esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__)));
 		$this->render(
-			$this->output_options($options),
-			esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__))),
-			array(
-				'product_id' => $product->get_id()
-			)
+			$output_options,
+			$page_js
 		);
 	}
 
@@ -208,17 +209,48 @@ class WC_Buyte_Widget{
 		$this->render($this->output_options($options));
 	}
 
-	public function render($output_options = '', $page_js = '', $widget_data = array()){
-		if(array_key_exists(self::PROPERTY_PUBLIC_KEY, $output_options) ? !$output_options[self::PROPERTY_PUBLIC_KEY] : true){
+	public function render($output_options = '', $page_js = ''){
+		if(array_key_exists(self::PROPERTY_PUBLIC_KEY, $output_options['buyteSettings']) ? !$output_options['buyteSettings'][self::PROPERTY_PUBLIC_KEY] : true){
 			WC_Buyte_Config::log("Could not render. ". self::PROPERTY_PUBLIC_KEY ." does not exist. \n" . print_r($output_options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 			return;
 		}
-		$buyte_settings = addslashes(json_encode($output_options));
+		// $buyte_config = addslashes(json_encode($output_options));
 		include plugin_dir_path( __FILE__ ) . 'view/widget/display.php';
+
+		// Register the script
+		wp_register_script( 'buyte_display', esc_url(plugins_url('includes/view/widget/display.js', dirname(__FILE__))));
+		// Localize config to script
+		wp_localize_script( 'buyte_display', 'config', $output_options );
+		// Enqueue display script
+		wp_enqueue_script( 'buyte_display' );
+
+		if ( !empty( $page_js ) ) {
+			wp_enqueue_script( 'buyte_' . basename($page_js), $page_js );
+		}
 	}
 
-	public function output_options($options){
-		return $options;
+	public function output_options($options, $widget_data = array()){
+		$product_id = array_key_exists('product_id', $widget_data) ? $widget_data['product_id'] : 0;
+
+		return array(
+			'endpoint' => admin_url( 'admin-ajax.php' ),
+			'nonce' => array(
+				'getShipping' => wp_create_nonce(WC_Buyte::AJAX_GET_SHIPPING),
+				'productToCartWithShipping' => wp_create_nonce(WC_Buyte::AJAX_PRODUCT_TO_CART_WITH_SHIPPING),
+				'productToCart' => wp_create_nonce(WC_Buyte::AJAX_PRODUCT_TO_CART),
+				'success' => wp_create_nonce(WC_Buyte::AJAX_SUCCESS),
+			),
+			'buyteSettings' => $options,
+			'actions' => array(
+				'getShipping' => WC_Buyte::AJAX_GET_SHIPPING,
+				'productToCartWithShipping' => WC_Buyte::AJAX_PRODUCT_TO_CART_WITH_SHIPPING,
+				'productToCart' => WC_Buyte::AJAX_PRODUCT_TO_CART,
+				'success' => WC_Buyte::AJAX_SUCCESS,
+			),
+			'productId' => $product_id,
+			'variationId' => 0,
+			'quantity' => 1
+		);
 	}
 
 	public function config_invalid() {

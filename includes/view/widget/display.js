@@ -1,34 +1,16 @@
 /**
 	This PHP code is editted in it's own JS file to leverage the power of prettier.
+
+	config variable should localised through PHP.
  */
 
 (function($) {
-	var config = {
-		nonce: {
-			getShipping:
-				"<?php echo wp_create_nonce(WC_Buyte::AJAX_GET_SHIPPING); ?>",
-			productToCartWithShipping:
-				"<?php echo wp_create_nonce(WC_Buyte::AJAX_PRODUCT_TO_CART_WITH_SHIPPING); ?>",
-			productToCart:
-				"<?php echo wp_create_nonce(WC_Buyte::AJAX_PRODUCT_TO_CART); ?>",
-			success: "<?php echo wp_create_nonce(WC_Buyte::AJAX_SUCCESS); ?>"
-		},
-		rawBuyteSettings: "<?php echo $buyte_settings; ?>",
-		endpoint: "<?php echo admin_url( 'admin-ajax.php' ); ?>",
-		actions: {
-			getShipping: "<?php echo WC_Buyte::AJAX_GET_SHIPPING; ?>",
-			productToCartWithShipping:
-				"<?php echo WC_Buyte::AJAX_PRODUCT_TO_CART_WITH_SHIPPING; ?>",
-			productToCart: "<?php echo WC_Buyte::AJAX_PRODUCT_TO_CART; ?>",
-			success: "<?php echo WC_Buyte::AJAX_SUCCESS; ?>"
-		},
-		productId: parseInt(
-			"<?php echo array_key_exists('product_id', $widget_data) ? $widget_data['product_id'] : 0; ?>",
-			10
-		),
-		variationId: 0,
-		quantity: 1
-	};
+	// Validate
+	config.productId = parseInt(config.productId, 10);
+	config.variationId = parseInt(config.variationId, 10);
+	config.quantity = parseInt(config.quantity, 10);
+
+	console.log(config);
 
 	window.wc_buyte = {
 		product_variation: function(variationId) {
@@ -64,12 +46,8 @@
 		});
 	};
 
-	var buyteSettings = {};
-	try {
-		buyteSettings = JSON.parse(config.rawBuyteSettings);
-	} catch (e) {}
 	// console.log(buyteSettings);
-	window.Buyte("load", buyteSettings);
+	window.Buyte("load", config.buyteSettings);
 	window.Buyte("onReady", function(settings) {
 		// onReady get gettings and check if shipping is set.
 		if (settings.options.shipping) {

@@ -29,7 +29,7 @@ if(!WC_Buyte::is_woocommerce_active()){
 class WC_Buyte{
 
 	/* DEVELOPER MODE */
-	const DEVELOPER_MODE = false;
+	const DEVELOPER_MODE = true;
 	/* version number */
 	const VERSION = '0.1.1';
 	/* ajax */
@@ -910,6 +910,7 @@ class WC_Buyte{
 		$response = $this->execute_request($request);
 		if(empty($response) ? true : !property_exists( $response, 'id' )){
 			WC_Buyte_Config::log("create_charge: Could not create charge", WC_Buyte_Config::LOG_LEVEL_FATAL);
+			WC_Buyte_Config::log(json_encode($response), WC_Buyte_Config::LOG_LEVEL_FATAL);
 			throw new Exception("Could not create Charge");
 		}
 		WC_Buyte_Config::log("create_charge: Successfully created charge: " . $response->id, WC_Buyte_Config::LOG_LEVEL_INFO);
