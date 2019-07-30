@@ -109,13 +109,6 @@ class WC_Buyte{
 				$posted = json_decode(json_encode($_POST));
 			}
 
-			// Security check
-			if( ! $this->ajax_security_check( $posted, self::AJAX_SUCCESS ) ){
-				WC_Buyte_Config::log("buyte_success: Failed security check...", WC_Buyte_Config::LOG_LEVEL_INFO);
-				header("HTTP/1.1 401 Unauthorized");
-    			exit;
-			}
-
 			// Get charge
 			$charge = $this->create_charge($posted->paymentToken);
 			WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
@@ -153,13 +146,6 @@ class WC_Buyte{
 			$posted = json_decode(file_get_contents('php://input'));
 			if(!$posted){
 				$posted = json_decode(json_encode($_POST));
-			}
-
-			// Security check
-			if( ! $this->ajax_security_check( $posted, self::AJAX_PRODUCT_TO_CART ) ){
-				WC_Buyte_Config::log("buyte_product_to_cart: Failed security check...", WC_Buyte_Config::LOG_LEVEL_INFO);
-				header("HTTP/1.1 401 Unauthorized");
-    			exit;
 			}
 
 			WC_Buyte_Util::debug_log( $posted );
@@ -202,13 +188,6 @@ class WC_Buyte{
 			$posted = json_decode(file_get_contents('php://input'));
 			if(!$posted){
 				$posted = json_decode(json_encode($_POST));
-			}
-
-			// Security check
-			if( ! $this->ajax_security_check( $posted, self::AJAX_PRODUCT_TO_CART_WITH_SHIPPING ) ){
-				WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Failed security check...", WC_Buyte_Config::LOG_LEVEL_INFO);
-				header("HTTP/1.1 401 Unauthorized");
-    			exit;
 			}
 
 			WC_Buyte_Util::debug_log( $posted );
@@ -259,13 +238,6 @@ class WC_Buyte{
 				$posted = json_decode(json_encode($_POST));
 			}
 
-			// Security check
-			if( ! $this->ajax_security_check( $posted, self::AJAX_GET_SHIPPING ) ){
-				WC_Buyte_Config::log("buyte_shipping: Failed security check...", WC_Buyte_Config::LOG_LEVEL_INFO);
-				header("HTTP/1.1 401 Unauthorized");
-    			exit;
-			}
-
 			WC_Buyte_Util::debug_log( $posted );
 
 			$shipping_response = $this->get_shipping_from_cart( $posted );
@@ -284,30 +256,6 @@ class WC_Buyte{
 
 			wp_send_json( $response );
 		}
-	}
-
-	public function ajax_security_check( $request_body, $action, $nonce_name = 'security' ) {
-		if( !empty( $request_body ) && !empty( $action ) ){
-			// Get security
-			$security = '';
-			if ( is_object( $request_body ) ) {
-				if ( property_exists( $request_body, $nonce_name ) ) {
-					$security = $request_body->security;
-				}
-            } else if ( is_array( $request_body ) ) {
-				if ( array_key_exists( $nonce_name, $request_body ) ) {
-					$security = $request_body[$nonce_name];
-				}
-			}
-			// Check to see if security nonce obtained
-			if( !empty( $security ) ){
-				// Verify the security nonce.
-				if ( wp_verify_nonce( $security, $action ) ) {
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 
 	/**
