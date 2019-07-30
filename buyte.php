@@ -808,7 +808,8 @@ class WC_Buyte{
 		);
 		$args = array(
 			'headers' => $headers,
-			'body' => $data
+			'body' => $data,
+			'timeout' => 45,
 		);
 		return array(
 			'url' => $url,
