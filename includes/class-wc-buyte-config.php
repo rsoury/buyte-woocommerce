@@ -14,6 +14,8 @@ class WC_Buyte_Config {
 	const CONFIG_DISPLAY_CHECKOUT = 'display_checkout';
 	const CONFIG_DISPLAY_CART = 'display_cart';
 	const CONFIG_DISPLAY_PRODUCT = 'display_product';
+    const CONFIG_DEVELOPER_MODE = 'developer_mode';
+    const CONFIG_TOGGLE_DEVELOPER_SETTINGS = 'toggle_dev_settings';
 
 	//Log levels
     const LOG_LEVEL_ALL = 1;
@@ -61,9 +63,19 @@ class WC_Buyte_Config {
     }
 
     public function load_admin_scripts() {
+        $admin_js_url = plugin_dir_url( __FILE__ ) . '../assets/css/admin.js';
         $admin_css_url = plugin_dir_url( __FILE__ ) . '../assets/css/admin.css';
         wp_register_style( 'buyte-admin-style', $admin_css_url );
-		wp_enqueue_style( 'buyte-admin-style' );
+        wp_enqueue_style( 'buyte-admin-style' );
+        wp_register_script( 'buyte-admin-script', $admin_js_url );
+        wp_localize_script( 'buyte-admin-script', 'config', array(
+            'toggle' => self::CONFIG_TOGGLE_DEVELOPER_SETTINGS,
+            'affected' => array(
+                self::CONFIG_LOGGING_LEVEL,
+                self::CONFIG_DEVELOPER_MODE
+            )
+        ) );
+        wp_enqueue_script( 'buyte-admin-script' );
     }
 
 	public function get_settings(){
@@ -74,7 +86,7 @@ class WC_Buyte_Config {
                 'type'  => 'title',
                 'desc' => sprintf(__('<a href="%s" target="_blank" rel="noopener noreferrer">Don\'t have your Buyte account and credentials?</a>', 'woocommerce'), $this->settings_website)
             ),
-			 array(
+			array(
                 'id' => self::CONFIG_ENABLED,
 				'title' => __('Enable/Disable', 'woocommerce'),
                 'label' => __('Enable Buyte Checkout', 'woocommerce'),
@@ -82,7 +94,7 @@ class WC_Buyte_Config {
                 'desc' => '',
                 'default' => 'no'
 			),
-			 array(
+			array(
                 'id' => self::CONFIG_WIDGET_ID,
 				'title' => __('Checkout Widget ID', 'woocommerce'),
                 'type' => 'text',
@@ -137,6 +149,12 @@ class WC_Buyte_Config {
                 'default' => 'yes'
             ),
             array(
+                'id' => self::CONFIG_TOGGLE_DEVELOPER_SETTINGS,
+                'title' => __('Show Developer Settings', 'woocommerce'),
+                'type' => 'checkbox',
+                'default' => 'no'
+            ),
+            array(
                 'id' => self::CONFIG_LOGGING_LEVEL,
 				'title' => __('Log Message level', 'woocommerce'),
                 'desc' => __('The log level will be used to log the messages. The orders are: ALL < DEBUG < INFO < WARN < ERROR < FATAL < OFF.'),
@@ -150,7 +168,14 @@ class WC_Buyte_Config {
                     self::LOG_LEVEL_ERROR => 'Error (and above)',
                     self::LOG_LEVEL_FATAL => 'Fatal (and above)',
                     self::LOG_LEVEL_OFF => 'Off (No message will be logged)'
-                )
+                ),
+            ),
+            array(
+                'id' => self::CONFIG_DEVELOPER_MODE,
+				'title' => __('Developer Mode', 'woocommerce'),
+                'type' => 'checkbox',
+                'desc' => __('<p>Leave OFF unless in active development or in demonstration. Toggles the use of Buyte developer resources and API. Requires Development credentials.</p><p>To test checkouts, please use Test Checkout Connection created through the Buyte Merchant Dashboard.</p>', 'woocommerce'),
+                'default' => 'no',
 			),
             array(
                 'id'   => $this->id . '_settings',
@@ -187,6 +212,10 @@ class WC_Buyte_Config {
 
     public function get_option( $option_name, $default = '' ) {
         return WC_Admin_Settings::get_option($option_name, $default);
+    }
+
+    public static function is_developer_mode() {
+        return WC_Admin_Settings::get_option(self::CONFIG_DEVELOPER_MODE, 'yes');
     }
 
     public static function get_id(){

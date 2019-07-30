@@ -27,9 +27,6 @@ if(!WC_Buyte::is_woocommerce_active()){
 }
 
 class WC_Buyte{
-
-	/* DEVELOPER MODE */
-	const DEVELOPER_MODE = true;
 	/* version number */
 	const VERSION = '0.1.1';
 	/* ajax */
@@ -851,7 +848,7 @@ class WC_Buyte{
 			throw new Exception('Cannot encode Buyte request body.');
 		}
 		$baseUrl = self::API_BASE_URL;
-		if(self::DEVELOPER_MODE){
+		if(WC_Buyte_Config::is_developer_mode()){
 			$baseUrl = self::DEV_API_BASE_URL;
 		}
 		$url = $baseUrl . $path;
