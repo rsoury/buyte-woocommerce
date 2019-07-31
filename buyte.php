@@ -122,7 +122,7 @@ class WC_Buyte{
 			}
 		} catch ( Exception $e ) {
 			WC_Buyte_Config::log("buyte_success: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
-			WC_Buyte_Config::log(json_encode($e), WC_Buyte_Config::LOG_LEVEL_ERROR);
+			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 		}
 		wp_send_json_error(array(  // send JSON back
 			'result' => 'checkout_failed',
@@ -149,7 +149,7 @@ class WC_Buyte{
 				$posted = json_decode(json_encode($_POST));
 			}
 
-			// WC_Buyte_Util::debug_log( $posted );
+			WC_Buyte_Config::log($posted, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
 			$product_id = property_exists($posted, "productId") ? $posted->productId : 0;
 			$quantity = property_exists($posted, "quantity") ? $posted->quantity : 1;
@@ -165,7 +165,7 @@ class WC_Buyte{
 			wp_send_json( $response );
 		} catch ( Exception $e ) {
 			WC_Buyte_Config::log("buyte_product_to_cart: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
-			WC_Buyte_Config::log(json_encode($e), WC_Buyte_Config::LOG_LEVEL_ERROR);
+			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 
 			$response['result'] = 'cannot_convert_product_to_cart';
 
@@ -192,7 +192,7 @@ class WC_Buyte{
 				$posted = json_decode(json_encode($_POST));
 			}
 
-			// WC_Buyte_Util::debug_log( $posted );
+			WC_Buyte_Config::log($posted, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
 			$product_id = property_exists($posted, "productId") ? $posted->productId : 0;
 			$quantity = property_exists($posted, "quantity") ? $posted->quantity : 1;
@@ -215,7 +215,7 @@ class WC_Buyte{
 			wp_send_json( $response );
 		} catch ( Exception $e ) {
 			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
-			WC_Buyte_Config::log(json_encode($e), WC_Buyte_Config::LOG_LEVEL_ERROR);
+			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 
 			$response['result'] = 'failed_product_to_cart_with_shipping';
 
@@ -241,7 +241,7 @@ class WC_Buyte{
 				$posted = json_decode(json_encode($_POST));
 			}
 
-			// WC_Buyte_Util::debug_log( $posted );
+			WC_Buyte_Config::log($posted, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
 			$shipping_response = $this->get_shipping_from_cart( $posted );
 
@@ -254,7 +254,7 @@ class WC_Buyte{
 			wp_send_json( $response );
 		} catch ( Exception $e ) {
 			WC_Buyte_Config::log("buyte_shipping: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
-			WC_Buyte_Config::log(json_encode($e), WC_Buyte_Config::LOG_LEVEL_ERROR);
+			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 
 			$response['result'] = 'invalid_shipping_address';
 
@@ -576,7 +576,7 @@ class WC_Buyte{
 
 		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
 
-		// WC_Buyte_Util::debug_log($packages);
+		WC_Buyte_Config::log($packages, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
 		WC()->shipping->calculate_shipping( $packages );
 	}
