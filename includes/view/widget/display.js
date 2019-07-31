@@ -93,7 +93,10 @@
 						done(data.shippingMethods);
 					},
 					function(e) {
-						onError(e);
+						console.error(e);
+						alert(
+							"No shipping methods available for your location. Please contact Merchant Support."
+						);
 						done();
 					}
 				);
