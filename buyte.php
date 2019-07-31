@@ -164,7 +164,7 @@ class WC_Buyte{
 
 			wp_send_json( $response );
 		} catch ( Exception $e ) {
-			WC_Buyte_Config::log("buyte_product_to_cart: Cannot convert product to cart...", WC_Buyte_Config::LOG_LEVEL_ERROR);
+			WC_Buyte_Config::log("buyte_product_to_cart: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
 			WC_Buyte_Config::log(json_encode($e), WC_Buyte_Config::LOG_LEVEL_ERROR);
 
 			$response['result'] = 'cannot_convert_product_to_cart';
