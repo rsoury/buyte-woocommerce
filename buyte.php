@@ -706,7 +706,7 @@ class WC_Buyte{
 		// Recreate $_POST for checkout
 		$postdata += array(
 			'billing_email' => property_exists($customer, 'emailAddress') ? $customer->emailAddress : null,
-			'billing_phone' => property_exists($customer, 'phoneNumber') ? $customer->phoneNumber : null,
+			'billing_phone' => property_exists($customer, 'phoneNumber') ? wc_sanitize_phone_number($customer->phoneNumber) : null,
 			'shipping_method' => $shipping_method,
 			'order_comments' => $comments,
 			'payment_method' => $this->WC_Buyte_Config->id,
