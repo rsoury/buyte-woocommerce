@@ -833,10 +833,12 @@ class WC_Buyte{
 		$args = $request['args'];
 		$response = wp_remote_post($url, $args);
 		if(is_wp_error($response)){
-			WC_Buyte_Config::log("Error on Request Execute", WC_Buyte_Config::LOG_LEVEL_FATAL);
+			WC_Buyte_Config::log("execute_request: Error", WC_Buyte_Config::LOG_LEVEL_FATAL);
 			WC_Buyte_Config::log($response, WC_Buyte_Config::LOG_LEVEL_FATAL);
 			return;
 		}
+		WC_Buyte_Config::log("execute_request: Successful", WC_Buyte_Config::LOG_LEVEL_DEBUG);
+		WC_Buyte_Config::log($response, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		$response_body = json_decode($response['body']);
 		return $response_body;
 	}

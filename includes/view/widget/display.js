@@ -23,6 +23,7 @@
 
 	var onError = function(e) {
 		console.error(e);
+		console.error(e.messages);
 		alert(
 			"Could not authorise payment with Buyte. Please contact support."
 		);
@@ -94,6 +95,7 @@
 					},
 					function(e) {
 						console.error(e);
+						console.error(e.messages);
 						alert(
 							"No shipping methods available for your location. Please contact Merchant Support."
 						);
@@ -142,6 +144,7 @@
 				function(e) {
 					// We want to either toast an error -- browser alerts might do for now, or redirect to an error page.
 					console.error(e);
+					console.error(e.messages);
 					alert(
 						"Could not checkout with Buyte. Please contact support."
 					);
