@@ -1,4 +1,4 @@
-=== Buyte Plugin for WooCommerce ===
+=== Buyte - Digital wallets for Woocommerce ===
 Contributors: Ryan Soury
 Tags: buyte, fast checkout, mobile-first, mobile checkout, apple pay, google pay, digital wallet, buyte checkout
 Stable tag: 0.1.2
