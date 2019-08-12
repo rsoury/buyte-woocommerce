@@ -4,7 +4,7 @@ Tags: buyte, fast checkout, mobile-first, mobile checkout, apple pay, google pay
 Stable tag: 0.1.2
 License: GPLv2 or later License http://www.gnu.org/licenses/gpl-2.0.html
 
-Buyte WooCommerce Plugin enables customer to checkout using Apple Pay and Google Pay from the Product, Cart and Checkout pages.
+Buyte WooCommerce Plugin enables customers to checkout using Apple Pay and Google Pay from the Product, Cart and Checkout pages.
 
 == Description ==
 Accelerate your customer experience with a bite sized checkout
@@ -18,8 +18,8 @@ Offer your customers Apple Pay and Google Pay in a single install. By integratin
 = Automatic Installation =
 *   Login to your WordPress Admin area
 *   Go to "Plugins > Add New" from the left hand menu
-*   In the search box type "Buyte Apple Pay"
-* From the search result you will see "Buyte - Apple Pay and Google Pay in a single install" click on "Install Now" to install the plugin
+*   In the search box type "Buyte"
+* From the search result you will see "Buyte - Digital wallets in a single install" click on "Install Now" to install the plugin
 * A popup window will ask you to confirm your wish to install the Plugin.
 
 = Note: =
