@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name:       Buyte - Digital wallets in a single install
+ * Plugin Name:       Buyte - Digital wallets for Woocommerce
  * Plugin URI:        https://wordpress.org/plugins/buyte-woocommerce-plugin/
  * Description:       Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.
  * Version:           0.1.2
@@ -13,7 +13,7 @@
  *
  *
  * @version  0.1.2
- * @package  Buyte - Digital wallets in a single install
+ * @package  Buyte - Digital wallets for Woocommerce
  * @author   Buyte
  */
 

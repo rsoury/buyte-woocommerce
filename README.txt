@@ -19,7 +19,7 @@ Offer your customers Apple Pay and Google Pay in a single install. By integratin
 *   Login to your WordPress Admin area
 *   Go to "Plugins > Add New" from the left hand menu
 *   In the search box type "Buyte"
-* From the search result you will see "Buyte - Digital wallets in a single install" click on "Install Now" to install the plugin
+* From the search result you will see "Buyte - Digital wallets for Woocommerce" click on "Install Now" to install the plugin
 * A popup window will ask you to confirm your wish to install the Plugin.
 
 = Note: =
