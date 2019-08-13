@@ -214,7 +214,7 @@ class WC_Buyte_Widget{
 			WC_Buyte_Config::log("Could not render. ". self::PROPERTY_PUBLIC_KEY ." does not exist. \n" . print_r($output_options, true), WC_Buyte_Config::LOG_LEVEL_DEBUG);
 			return;
 		}
-		// $buyte_config = addslashes(json_encode($output_options));
+
 		include plugin_dir_path( __FILE__ ) . 'view/widget/display.php';
 
 		// Register the script

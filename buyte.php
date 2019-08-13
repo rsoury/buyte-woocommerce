@@ -109,6 +109,13 @@ class WC_Buyte{
 				$posted = json_decode(json_encode($_POST));
 			}
 
+			// Validate
+			if( !property_exists($posted, 'paymentToken') ){
+				throw new Exception("Payment Token not provided.");
+			} else if ( empty( $posted->paymentToken ) ) {
+				throw new Exception("Payment Token is empty.");
+			}
+
 			// Get charge
 			$charge = $this->create_charge($posted->paymentToken);
 			WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
@@ -362,11 +369,11 @@ class WC_Buyte{
 		}
 
 		$order = wc_get_order( $order_id );
-		$charge_id = $_POST['buyte_charge'];
-		$payment_source_id = $_POST['buyte_payment_source'];
-		$payment_type = $_POST['buyte_payment_type'];
-		$provider_name = $_POST['buyte_provider_name'];
-		$provider_reference = $_POST['buyte_provider_reference'];
+		$charge_id = sanitize_text_field($_POST['buyte_charge']);
+		$payment_source_id = sanitize_text_field($_POST['buyte_payment_source']);
+		$payment_type = sanitize_text_field($_POST['buyte_payment_type']);
+		$provider_name = sanitize_text_field($_POST['buyte_provider_name']);
+		$provider_reference = sanitize_text_field($_POST['buyte_provider_reference']);
 
 		// $method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
 		$method_title = $payment_type;
@@ -398,10 +405,6 @@ class WC_Buyte{
 	public function convert_product_to_cart( $product_id, $qty = 1, $variation_id = 0 ) {
 		if( empty( $product_id ) ){
 			throw new Exception("Product ID not provided");
-		}
-
-		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
-			define( 'WOOCOMMERCE_CART', true );
 		}
 
 		WC()->shipping->reset_shipping();
@@ -464,6 +467,10 @@ class WC_Buyte{
 
 		$data['items'] = $items;
 
+		if ( ! defined( 'BUYTE_CART' ) ) {
+			define( 'BUYTE_CART', true );
+		}
+
 		return $data;
 	}
 
@@ -516,12 +523,13 @@ class WC_Buyte{
 	 * Calculate and set shipping method.
 	 */
 	protected function calculate_shipping( $address ) {
-		$country   = $address->country;
-		$state     = $address->state;
-		$postcode  = $address->postcode;
-		$city      = $address->city;
-		$address_1 = $address->address;
-		$address_2 = $address->address_2;
+		$country   = sanitize_text_field($address->country);
+		$state     = sanitize_text_field($address->state);
+		$postcode  = sanitize_text_field($address->postcode);
+		$city      = sanitize_text_field($address->city);
+		$address_1 = sanitize_text_field($address->address);
+		$address_2 = sanitize_text_field($address->address_2);
+
 		$wc_states = WC()->countries->get_states( $country );
 
 		/**
@@ -630,10 +638,10 @@ class WC_Buyte{
 		if(property_exists($customer, 'name')){
 			$split_name = WC_Buyte_Util::split_name($customer->name);
 			if(empty($first_name)){
-				$first_name = $split_name[0];
+				$first_name = sanitize_text_field($split_name[0]);
 			}
 			if(empty($last_name)){
-				$last_name = $split_name[1];
+				$last_name = sanitize_text_field($split_name[1]);
 			}
 		}
 
@@ -644,49 +652,61 @@ class WC_Buyte{
 			'billing_last_name' => $last_name,
 			'shipping_company' => '',
 			'shipping_country' =>
-				isset($customer->shippingAddress->countryCode) ?
-						$customer->shippingAddress->countryCode :
-						(isset($customer->shippingAddress->country) ? $customer->shippingAddress->country : ''),
+				sanitize_text_field(
+					isset($customer->shippingAddress->countryCode) ?
+								$customer->shippingAddress->countryCode :
+								(isset($customer->shippingAddress->country) ? $customer->shippingAddress->country : '')
+					),
 			'shipping_address_1' =>
-				isset($customer->shippingAddress->addressLines) ?
-					(sizeof($customer->shippingAddress->addressLines) > 0 ? $customer->shippingAddress->addressLines[0] : '') :
-					'',
+				sanitize_text_field(
+					isset($customer->shippingAddress->addressLines) ?
+						(sizeof($customer->shippingAddress->addressLines) > 0 ? $customer->shippingAddress->addressLines[0] : '') :
+						''
+					),
 			'shipping_address_2' =>
-				isset($customer->shippingAddress->addressLines) ?
-					(sizeof($customer->shippingAddress->addressLines) > 1 ? $customer->shippingAddress->addressLines[1] : '') :
-					'',
-			'shipping_city' => isset($customer->shippingAddress->locality) ? $customer->shippingAddress->locality : '',
-			'shipping_state' => isset($customer->shippingAddress->administrativeArea) ? $customer->shippingAddress->administrativeArea : '',
-			'shipping_postcode' => isset($customer->shippingAddress->postalCode) ? $customer->shippingAddress->postalCode : '',
+				sanitize_text_field(
+					isset($customer->shippingAddress->addressLines) ?
+						(sizeof($customer->shippingAddress->addressLines) > 1 ? $customer->shippingAddress->addressLines[1] : '') :
+						''
+					),
+			'shipping_city' => sanitize_text_field(isset($customer->shippingAddress->locality) ? $customer->shippingAddress->locality : ''),
+			'shipping_state' => sanitize_text_field(isset($customer->shippingAddress->administrativeArea) ? $customer->shippingAddress->administrativeArea : ''),
+			'shipping_postcode' => sanitize_text_field(isset($customer->shippingAddress->postalCode) ? $customer->shippingAddress->postalCode : ''),
 		);
 		if(isset($customer->billingAddress) ? !empty((array) $customer->billingAddress) : false){
 			$postdata += array(
 				'billing_company' => '',
 				'billing_country' =>
-					isset($customer->billingAddress->countryCode) ?
-						$customer->billingAddress->countryCode :
-						(isset($customer->billingAddress->country) ? $customer->billingAddress->country : ''),
+					sanitize_text_field(
+						isset($customer->billingAddress->countryCode) ?
+								$customer->billingAddress->countryCode :
+								(isset($customer->billingAddress->country) ? $customer->billingAddress->country : '')
+						),
 				'billing_address_1' =>
-					isset($customer->billingAddress->addressLines) ?
-						(sizeof($customer->billingAddress->addressLines) > 0 ? $customer->billingAddress->addressLines[0] : '') :
-						'',
+					sanitize_text_field(
+						isset($customer->billingAddress->addressLines) ?
+							(sizeof($customer->billingAddress->addressLines) > 0 ? $customer->billingAddress->addressLines[0] : '') :
+							''
+						),
 				'billing_address_2' =>
-					isset($customer->billingAddress->addressLines) ?
-						(sizeof($customer->billingAddress->addressLines) > 1 ? $customer->billingAddress->addressLines[1] : '') :
-						'',
-				'billing_city' => isset($customer->billingAddress->locality) ? $customer->billingAddress->locality : '',
-				'billing_state' => isset($customer->billingAddress->administrativeArea) ? $customer->billingAddress->administrativeArea : '',
-				'billing_postcode' => isset($customer->billingAddress->postalCode) ? $customer->billingAddress->postalCode : '',
+					sanitize_text_field(
+						isset($customer->billingAddress->addressLines) ?
+							(sizeof($customer->billingAddress->addressLines) > 1 ? $customer->billingAddress->addressLines[1] : '') :
+							''
+						),
+				'billing_city' => sanitize_text_field(isset($customer->billingAddress->locality) ? $customer->billingAddress->locality : ''),
+				'billing_state' => sanitize_text_field(isset($customer->billingAddress->administrativeArea) ? $customer->billingAddress->administrativeArea : ''),
+				'billing_postcode' => sanitize_text_field(isset($customer->billingAddress->postalCode) ? $customer->billingAddress->postalCode : ''),
 			);
 		}else{
 			$postdata += array(
-				'billing_company' => $postdata['shipping_company'],
-				'billing_country' => $postdata['shipping_country'],
-				'billing_address_1' => $postdata['shipping_address_1'],
-				'billing_address_2' => $postdata['shipping_address_2'],
-				'billing_city' => $postdata['shipping_city'],
-				'billing_state' => $postdata['shipping_state'],
-				'billing_postcode' => $postdata['shipping_postcode']
+				'billing_company' => sanitize_text_field($postdata['shipping_company']),
+				'billing_country' => sanitize_text_field($postdata['shipping_country']),
+				'billing_address_1' => sanitize_text_field($postdata['shipping_address_1']),
+				'billing_address_2' => sanitize_text_field($postdata['shipping_address_2']),
+				'billing_city' => sanitize_text_field($postdata['shipping_city']),
+				'billing_state' => sanitize_text_field($postdata['shipping_state']),
+				'billing_postcode' => sanitize_text_field($postdata['shipping_postcode'])
 			);
 		}
 
@@ -698,17 +718,17 @@ class WC_Buyte{
 			$comments .= "'s " . $charge->source->paymentMethod->name . ".";
 		}
 		if(isset($charge->source->shippingMethod)){
-			$shipping_method_name = isset($charge->source->shippingMethod->label) ? $charge->source->shippingMethod->label : '';
-			$shipping_method_description = isset($charge->source->shippingMethod->description) ? $charge->source->shippingMethod->description : '';
-			$shipping_method_rate = isset($charge->source->shippingMethod->rate) ? $charge->source->shippingMethod->rate : 0;
+			$shipping_method_name = sanitize_text_field(isset($charge->source->shippingMethod->label) ? $charge->source->shippingMethod->label : '');
+			$shipping_method_description = sanitize_textarea_field(isset($charge->source->shippingMethod->description) ? $charge->source->shippingMethod->description : '');
+			$shipping_method_rate = isset($charge->source->shippingMethod->rate) ? intval($charge->source->shippingMethod->rate) : 0;
 		}
 
 		// Recreate $_POST for checkout
 		$postdata += array(
-			'billing_email' => property_exists($customer, 'emailAddress') ? $customer->emailAddress : null,
+			'billing_email' => property_exists($customer, 'emailAddress') ? sanitize_email($customer->emailAddress) : null,
 			'billing_phone' => property_exists($customer, 'phoneNumber') ? wc_sanitize_phone_number($customer->phoneNumber) : null,
 			'shipping_method' => $shipping_method,
-			'order_comments' => $comments,
+			'order_comments' => sanitize_textarea_field($comments),
 			'payment_method' => $this->WC_Buyte_Config->id,
 			'ship_to_different_address' => 1,
 			'terms' => 1,
@@ -733,8 +753,8 @@ class WC_Buyte{
 
 		// Execute WC Proceed Checkout on the existing cart.
 
-		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
-			define( 'WOOCOMMERCE_CHECKOUT', true );
+		if ( ! defined( 'BUYTE_CHECKOUT' ) ) {
+			define( 'BUYTE_CHECKOUT', true );
 		}
 
 		WC()->checkout()->process_checkout();
@@ -759,10 +779,6 @@ class WC_Buyte{
 	 * @return void
 	 */
 	protected function update_shipping_method( $shipping_method ) {
-		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
-			define( 'WOOCOMMERCE_CART', true );
-		}
-
 		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
 
 		if( is_object( $shipping_method ) ){
