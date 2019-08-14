@@ -215,10 +215,18 @@ class WC_Buyte_Widget{
 			return;
 		}
 
-		include plugin_dir_path( __FILE__ ) . 'view/widget/display.php';
+		// Echo some HTML element that the checkout will mount onto.
+		echo '<div id="buyte-checkout-widget"></div>';
+
+		// Enqueue the appropriate Buyte JS file
+		if(WC_Buyte_Config::is_developer_mode()){
+			wp_enqueue_script( 'buyte_js', 'https://js.buytecheckout.com/dev/v1/index.js' );
+		}else{
+			wp_enqueue_script( 'buyte_js', 'https://js.buytecheckout.com/v1/' );
+		}
 
 		// Register the script
-		wp_register_script( 'buyte_display', esc_url(plugins_url('includes/view/widget/display.js', dirname(__FILE__))));
+		wp_register_script( 'buyte_display', esc_url(plugins_url('assets/js/display.js', dirname(__FILE__))), array( 'buyte_js' ));
 		// Localize config to script
 		wp_localize_script( 'buyte_display', 'config', $output_options );
 		// Enqueue display script
