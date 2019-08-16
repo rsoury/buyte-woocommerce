@@ -35,6 +35,10 @@ Buyte Terms of Service: http://bit.ly/buyte-msa
 https://js.buytecheckout.com/v1/ is used to load the widget on the browser.
 https://api.buytecheckout.com/v1/ is our API base URL and is used to facilitate charge requests against tokenised payments created by the Buyte widget.
 
+== Contributions ==
+
+Feel free to submit any pull requests here: https://github.com/rsoury/buyte-woocommerce
+
 == Installation ==
 
 = Automatic Installation =
