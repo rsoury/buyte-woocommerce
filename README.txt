@@ -1,6 +1,6 @@
 === Buyte ===
 Contributors: Ryan Soury
-Tags: buyte, fast checkout, mobile-first, mobile checkout, apple pay, google pay, digital wallet, buyte checkout
+Tags: apple pay, google pay, fast checkout, digital wallet, mobile first, mobile checkout,
 Stable tag: 0.1.3
 License: GPLv2 or later License http://www.gnu.org/licenses/gpl-2.0.html
 
