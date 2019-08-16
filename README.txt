@@ -1,7 +1,8 @@
 === Buyte ===
-Contributors: Ryan Soury
+Contributors: webdoodle
 Tags: apple pay, google pay, fast checkout, digital wallet, mobile first, mobile checkout,
 Stable tag: 0.1.4
+Tested up to: 5.2.2
 License: GPLv2 or later License http://www.gnu.org/licenses/gpl-2.0.html
 
 Buyte WooCommerce Plugin enables checkout using Apple Pay and Google Pay in a simple, codeless install. Accelerate your customer experience with a bite-sized checkout.
