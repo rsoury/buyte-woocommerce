@@ -17,7 +17,7 @@ Buyte WooCommerce Plugin enables checkout using Apple Pay and Google Pay in a si
 
 **What is Buyte?**
 Buyte is a third-party software as a service provider that simplifies the process of getting digital wallets like Apple Pay and Google Pay set up on your eCommerce store.
-You can find more information about Buyte here: https://buytecheckout.com/
+You can find more information about Buyte here: [https://buytecheckout.com/](https://buytecheckout.com/)
 
 **How does it work?**
 Buyte works by loading a small widget on the eCommerce website that loads widely used digital wallets, hassle-free.
@@ -30,14 +30,14 @@ Offer your customers Apple Pay and Google Pay in a single install. By integratin
 
 == Terms ==
 
-Buyte Terms of Service: http://bit.ly/buyte-msa
+Buyte Terms of Service: [http://bit.ly/buyte-msa](http://bit.ly/buyte-msa)
 
 https://js.buytecheckout.com/v1/ is used to load the widget on the browser.
 https://api.buytecheckout.com/v1/ is our API base URL and is used to facilitate charge requests against tokenised payments created by the Buyte widget.
 
 == Contributions ==
 
-Feel free to submit any pull requests here: https://github.com/rsoury/buyte-woocommerce
+Feel free to submit any pull requests here: [https://github.com/rsoury/buyte-woocommerce](https://github.com/rsoury/buyte-woocommerce)
 
 == Installation ==
 
