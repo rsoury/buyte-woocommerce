@@ -98,21 +98,21 @@ class WC_Buyte_Config {
                 'id' => self::CONFIG_WIDGET_ID,
 				'title' => __('Checkout Widget ID', 'woocommerce'),
                 'type' => 'text',
-                'desc' => sprintf(__('Can be obtained by created a Buyte Checkout in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
+                'desc' => sprintf(__('Can be obtained by creating a Checkout in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
                 'default' => ''
 			),
 			array(
                 'id' => self::CONFIG_PUBLIC_KEY,
 				'title' => __('Public Key', 'woocommerce'),
                 'type' => 'text',
-                'desc' => sprintf(__('Get your Public Key in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
+                'desc' => sprintf(__('Get your Public Key from the Developer Tab in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
                 'default' => ''
 			),
 			array(
                 'id' => self::CONFIG_SECRET_KEY,
 				'title' => __('Secret Key', 'woocommerce'),
                 'type' => 'password',
-                'desc' => sprintf(__('Get your Public Key in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
+                'desc' => sprintf(__('Get your Secret Key from the Developer Tab in the <a href="%s" target="_blank" rel="noopener noreferrer">Buyte Dashboard</a>', 'woocommerce'), $this->settings_dashboard),
                 'default' => ''
             ),
             array(
