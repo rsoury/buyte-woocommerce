@@ -63,8 +63,8 @@ class WC_Buyte_Config {
     }
 
     public function load_admin_scripts() {
-        $admin_js_url = plugin_dir_url( __FILE__ ) . '../assets/css/admin.js';
-        $admin_css_url = plugin_dir_url( __FILE__ ) . '../assets/css/admin.css';
+        $admin_js_url = plugin_dir_url( __FILE__ ) . '../admin/css/admin.js';
+        $admin_css_url = plugin_dir_url( __FILE__ ) . '../admin/css/admin.css';
         wp_register_style( 'buyte-admin-style', $admin_css_url );
         wp_enqueue_style( 'buyte-admin-style' );
         wp_register_script( 'buyte-admin-script', $admin_js_url );

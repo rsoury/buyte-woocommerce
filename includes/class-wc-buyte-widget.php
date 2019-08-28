@@ -188,7 +188,7 @@ class WC_Buyte_Widget{
 		$output_options = $this->output_options($options, array(
 			'product_id' => $product->get_id()
 		));
-		$page_js = esc_url(plugins_url('assets/js/product_page.js', dirname(__FILE__)));
+		$page_js = esc_url(plugins_url('public/js/product_page.js', dirname(__FILE__)));
 		$this->render(
 			$output_options,
 			$page_js
@@ -226,7 +226,7 @@ class WC_Buyte_Widget{
 		}
 
 		// Register the script
-		wp_register_script( 'buyte_display', esc_url(plugins_url('assets/js/display.js', dirname(__FILE__))), array( 'buyte_js' ));
+		wp_register_script( 'buyte_display', esc_url(plugins_url('public/js/display.js', dirname(__FILE__))), array( 'buyte_js' ));
 		// Localize config to script
 		wp_localize_script( 'buyte_display', 'config', $output_options );
 		// Enqueue display script
