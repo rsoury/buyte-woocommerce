@@ -25,7 +25,7 @@ Offer your customers Apple Pay and Google Pay in a single install. By integratin
 == Setup ==
 1. Create an account at [https://dashboard.buytecheckout.com/signup/](https://dashboard.buytecheckout.com/signup/)
 2. Create a checkout
-3. Connect your payment gateway
+3. Configure your payouts or connect your payment gateway
 4. Use your Buyte API keys and Checkout Widget ID in the plugin configuration.
 
 == Terms ==
