@@ -23,7 +23,7 @@
 
 	var onError = function(e) {
 		console.error(e);
-		console.error(e.messages);
+		console.error(e.message);
 		alert(
 			"Could not authorise payment with Buyte. Please contact support."
 		);
@@ -95,7 +95,7 @@
 					},
 					function(e) {
 						console.error(e);
-						console.error(e.messages);
+						console.error(e.message);
 						alert(
 							"No shipping methods available for your location. Please contact Merchant Support."
 						);
@@ -107,8 +107,8 @@
 			// If shipping disabled but product id exists, onAuthentication convert product to cart.
 			window.Buyte("onAuthentication", function() {
 				var params = {
-					action: config.actions.productToCartParams,
-					security: config.nonce.productToCartParams,
+					action: config.actions.productToCart,
+					security: config.nonce.productToCart,
 					productId: config.productId,
 					variationId: config.variationId,
 					quantity: config.quantity
@@ -144,7 +144,7 @@
 				function(e) {
 					// We want to either toast an error -- browser alerts might do for now, or redirect to an error page.
 					console.error(e);
-					console.error(e.messages);
+					console.error(e.message);
 					alert(
 						"Could not checkout with Buyte. Please contact support."
 					);
