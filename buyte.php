@@ -4,7 +4,7 @@
  * Plugin Name:       Buyte
  * Plugin URI:        https://wordpress.org/plugins/buyte-woocommerce-plugin/
  * Description:       Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.
- * Version:           0.2.1
+ * Version:           0.2.2
  * Author:            Buyte
  * Author URI:        https://www.buytecheckout.com/
  * License:           GPL-2.0+
@@ -12,23 +12,24 @@
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  *
  *
- * @version  0.2.1
+ * @version  0.2.2
  * @package  Buyte
  * @author   Buyte
  */
 
 // If this file is called directly, abort.
 if (!defined('WPINC')) {
-    die;
+	die;
 }
 
-if(!WC_Buyte::is_woocommerce_active()){
+if (!WC_Buyte::is_woocommerce_active()) {
 	return;
 }
 
-class WC_Buyte{
+class WC_Buyte
+{
 	/* version number */
-	const VERSION = '0.2.1';
+	const VERSION = '0.2.2';
 	/* ajax */
 	const AJAX_SUCCESS = 'buyte_success';
 	const AJAX_GET_SHIPPING = 'buyte_shipping';
@@ -45,11 +46,13 @@ class WC_Buyte{
 	public $WC_Buyte_Widget;
 
 
-	public function __construct() {
-		add_action( 'plugins_loaded', array( $this, 'initialize' ), 100 );
+	public function __construct()
+	{
+		add_action('plugins_loaded', array($this, 'initialize'), 100);
 	}
 
-	public function initialize(){
+	public function initialize()
+	{
 		$this->load_dependencies();
 
 		// The earlier we handle these, the better. This way we have access to our public vars.
@@ -59,32 +62,34 @@ class WC_Buyte{
 		$this->handle_widget();
 
 		// Setup plugin action links -- see plugin page.
-		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
+		add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
 
 		// Setup admin ajax endpoints
-		add_action( 'wp_ajax_' . self::AJAX_SUCCESS, array( $this, 'ajax_buyte_success' ) );
-		add_action( 'wp_ajax_nopriv_' . self::AJAX_SUCCESS, array( $this, 'ajax_buyte_success' ) );
-		add_action( 'wp_ajax_' . self::AJAX_GET_SHIPPING, array( $this, 'ajax_buyte_shipping' ) );
-		add_action( 'wp_ajax_nopriv_'  . self::AJAX_GET_SHIPPING, array( $this, 'ajax_buyte_shipping' ) );
-		add_action( 'wp_ajax_' . self::AJAX_PRODUCT_TO_CART, array( $this, 'ajax_buyte_product_to_cart' ) );
-		add_action( 'wp_ajax_nopriv_' . self::AJAX_PRODUCT_TO_CART, array( $this, 'ajax_buyte_product_to_cart' ) );
-		add_action( 'wp_ajax_' . self::AJAX_PRODUCT_TO_CART_WITH_SHIPPING, array( $this, 'ajax_buyte_product_to_cart_with_shipping' ) );
-		add_action( 'wp_ajax_nopriv_' . self::AJAX_PRODUCT_TO_CART_WITH_SHIPPING, array( $this, 'ajax_buyte_product_to_cart_with_shipping' ) );
+		add_action('wp_ajax_' . self::AJAX_SUCCESS, array($this, 'ajax_buyte_success'));
+		add_action('wp_ajax_nopriv_' . self::AJAX_SUCCESS, array($this, 'ajax_buyte_success'));
+		add_action('wp_ajax_' . self::AJAX_GET_SHIPPING, array($this, 'ajax_buyte_shipping'));
+		add_action('wp_ajax_nopriv_'  . self::AJAX_GET_SHIPPING, array($this, 'ajax_buyte_shipping'));
+		add_action('wp_ajax_' . self::AJAX_PRODUCT_TO_CART, array($this, 'ajax_buyte_product_to_cart'));
+		add_action('wp_ajax_nopriv_' . self::AJAX_PRODUCT_TO_CART, array($this, 'ajax_buyte_product_to_cart'));
+		add_action('wp_ajax_' . self::AJAX_PRODUCT_TO_CART_WITH_SHIPPING, array($this, 'ajax_buyte_product_to_cart_with_shipping'));
+		add_action('wp_ajax_nopriv_' . self::AJAX_PRODUCT_TO_CART_WITH_SHIPPING, array($this, 'ajax_buyte_product_to_cart_with_shipping'));
 
 		// Handle Payment Gateway
-		add_filter( 'woocommerce_payment_gateways', array( $this, 'handle_payment_gateway' ) );
-		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'gateway_availability' ));
+		add_filter('woocommerce_payment_gateways', array($this, 'handle_payment_gateway'));
+		add_filter('woocommerce_available_payment_gateways', array($this, 'gateway_availability'));
 
 		// Add order meta data after order process
-		add_action( 'woocommerce_checkout_order_processed', array( $this, 'add_order_meta' ), 10, 1 );
+		add_action('woocommerce_checkout_order_processed', array($this, 'add_order_meta'), 10, 1);
 	}
 
-	public function basename(){
-    	return plugin_basename(__FILE__);
+	public function basename()
+	{
+		return plugin_basename(__FILE__);
 	}
 
-    public static function instance() {
-		if ( is_null( self::$instance ) ) {
+	public static function instance()
+	{
+		if (is_null(self::$instance)) {
 			self::$instance = new self();
 		}
 		return self::$instance;
@@ -100,34 +105,35 @@ class WC_Buyte{
 	 *
 	 * @return void
 	 */
-	public function ajax_buyte_success() {
+	public function ajax_buyte_success()
+	{
 		try {
 			WC_Buyte_Config::log("buyte_success: Processing Buyte checkout...", WC_Buyte_Config::LOG_LEVEL_INFO);
 			// Retrieve JSON payload
 			$posted = json_decode(file_get_contents('php://input'));
-			if(!$posted){
+			if (!$posted) {
 				$posted = json_decode(json_encode($_POST));
 			}
 
 			// Validate
-			if( !property_exists($posted, 'paymentToken') ){
+			if (!property_exists($posted, 'paymentToken')) {
 				throw new Exception("Payment Token not provided.");
-			} else if ( empty( $posted->paymentToken ) ) {
+			} else if (empty($posted->paymentToken)) {
 				throw new Exception("Payment Token is empty.");
 			}
 
 			// Get charge
 			$charge = $this->create_charge($posted->paymentToken);
 			WC_Buyte_Config::log("buyte_success: Charge created.", WC_Buyte_Config::LOG_LEVEL_INFO);
-			if( property_exists( $charge, 'id' ) ){
+			if (property_exists($charge, 'id')) {
 				// Order functions use a WC checkout method that sends a redirect url to the frontend for us.
-				$this->create_order( $charge );
+				$this->create_order($charge);
 				WC_Buyte_Config::log("buyte_success: Order created and confirmation url sent.", WC_Buyte_Config::LOG_LEVEL_INFO);
 				exit;
-			}else{
+			} else {
 				WC_Buyte_Config::log("buyte_success: Charge does not have Id. Contact Buyte Support.", WC_Buyte_Config::LOG_LEVEL_WARN);
 			}
-		} catch ( Exception $e ) {
+		} catch (Exception $e) {
 			WC_Buyte_Config::log("buyte_success: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
 			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 		}
@@ -138,21 +144,22 @@ class WC_Buyte{
 		exit;
 	}
 
-	 /**
-	  * ajax_buyte_product_to_cart
-	  *
-	  * Ajax function handler that accepts product data and creates new cart out of it.
-	  *
-	  * @return void
-	  */
-	public function ajax_buyte_product_to_cart() {
+	/**
+	 * ajax_buyte_product_to_cart
+	 *
+	 * Ajax function handler that accepts product data and creates new cart out of it.
+	 *
+	 * @return void
+	 */
+	public function ajax_buyte_product_to_cart()
+	{
 		WC_Buyte_Config::log("buyte_product_to_cart: Converting product to cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		$response = array();
 
 		try {
 			// Retrieve JSON payload
 			$posted = json_decode(file_get_contents('php://input'));
-			if(!$posted){
+			if (!$posted) {
 				$posted = json_decode(json_encode($_POST));
 			}
 
@@ -163,20 +170,20 @@ class WC_Buyte{
 			$variation_id = property_exists($posted, "variationId") ? $posted->variationId : 0;
 
 			// Convert Product to Cart
-			$to_cart_response = $this->convert_product_to_cart( $product_id, $quantity, $variation_id );
+			$to_cart_response = $this->convert_product_to_cart($product_id, $quantity, $variation_id);
 
 			$response['result'] = 'success';
 
-			$response = array_merge( $response, $to_cart_response );
+			$response = array_merge($response, $to_cart_response);
 
-			wp_send_json( $response );
-		} catch ( Exception $e ) {
+			wp_send_json($response);
+		} catch (Exception $e) {
 			WC_Buyte_Config::log("buyte_product_to_cart: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
 			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 
 			$response['result'] = 'cannot_convert_product_to_cart';
 
-			wp_send_json( $response );
+			wp_send_json($response);
 		}
 	}
 
@@ -188,14 +195,15 @@ class WC_Buyte{
 	 *
 	 * @return void
 	 */
-	public function ajax_buyte_product_to_cart_with_shipping() {
+	public function ajax_buyte_product_to_cart_with_shipping()
+	{
 		WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Converting product to cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		$response = array();
 
 		try {
 			// Retrieve JSON payload
 			$posted = json_decode(file_get_contents('php://input'));
-			if(!$posted){
+			if (!$posted) {
 				$posted = json_decode(json_encode($_POST));
 			}
 
@@ -206,27 +214,27 @@ class WC_Buyte{
 			$variation_id = property_exists($posted, "variationId") ? $posted->variationId : 0;
 
 			// Convert Product to Cart
-			$to_cart_response = $this->convert_product_to_cart( $product_id, $quantity, $variation_id );
+			$to_cart_response = $this->convert_product_to_cart($product_id, $quantity, $variation_id);
 
 			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Successfully converted product to cart. Getting shipping from cart...", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			// Get shipping
-			$shipping_response = $this->get_shipping_from_cart( $posted );
+			$shipping_response = $this->get_shipping_from_cart($posted);
 
-			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Successfully retrieved shipping response", WC_Buyte_Config::LOG_LEVEL_INFO);	
+			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Successfully retrieved shipping response", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			$response['result'] = 'success';
 
-			$response = array_merge( $response, $shipping_response, $to_cart_response );
+			$response = array_merge($response, $shipping_response, $to_cart_response);
 
-			wp_send_json( $response );
-		} catch ( Exception $e ) {
+			wp_send_json($response);
+		} catch (Exception $e) {
 			WC_Buyte_Config::log("buyte_product_to_cart_with_shipping: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
 			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 
 			$response['result'] = 'failed_product_to_cart_with_shipping';
 
-			wp_send_json( $response );
+			wp_send_json($response);
 		}
 	}
 
@@ -237,35 +245,36 @@ class WC_Buyte{
 	 *
 	 * @return void
 	 */
-	public function ajax_buyte_shipping() {
+	public function ajax_buyte_shipping()
+	{
 		WC_Buyte_Config::log("buyte_shipping: Getting shipping response...", WC_Buyte_Config::LOG_LEVEL_INFO);
 		$response = array();
 
 		try {
 			// Retrieve JSON payload
 			$posted = json_decode(file_get_contents('php://input'));
-			if(!$posted){
+			if (!$posted) {
 				$posted = json_decode(json_encode($_POST));
 			}
 
 			WC_Buyte_Config::log($posted, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
-			$shipping_response = $this->get_shipping_from_cart( $posted );
+			$shipping_response = $this->get_shipping_from_cart($posted);
 
 			WC_Buyte_Config::log("buyte_shipping: Successfully retrieved shipping response", WC_Buyte_Config::LOG_LEVEL_INFO);
 
 			$response['result'] = 'success';
 
-			$response = array_merge( $response, $shipping_response );
+			$response = array_merge($response, $shipping_response);
 
-			wp_send_json( $response );
-		} catch ( Exception $e ) {
+			wp_send_json($response);
+		} catch (Exception $e) {
 			WC_Buyte_Config::log("buyte_shipping: Error", WC_Buyte_Config::LOG_LEVEL_ERROR);
 			WC_Buyte_Config::log($e, WC_Buyte_Config::LOG_LEVEL_ERROR);
 
 			$response['result'] = 'invalid_shipping_address';
 
-			wp_send_json( $response );
+			wp_send_json($response);
 		}
 	}
 
@@ -273,31 +282,34 @@ class WC_Buyte{
 	 * Load all dependency files for this plugin.
 	 *
 	 */
-	public function load_dependencies(){
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-config.php';
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-widget.php';
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-util.php';
-		require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-buyte-payment-gateway.php';
+	public function load_dependencies()
+	{
+		require_once plugin_dir_path(__FILE__) . 'includes/class-wc-buyte-config.php';
+		require_once plugin_dir_path(__FILE__) . 'includes/class-wc-buyte-widget.php';
+		require_once plugin_dir_path(__FILE__) . 'includes/class-wc-buyte-util.php';
+		require_once plugin_dir_path(__FILE__) . 'includes/class-wc-buyte-payment-gateway.php';
 	}
 
 	/**
-     * Adds plugin action links.
-     *
-     */
-    public function plugin_action_links( $links ) {
-        $plugin_links = array(
-            '<a href="admin.php?page=wc-settings&tab='. $this->WC_Buyte_Config->id .'">' . esc_html__( 'Settings', 'woocommerce' ) . '</a>',
-            '<a href="'. $this->WC_Buyte_Config->settings_website .'" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Website', 'woocommerce' ) . '</a>'
-        );
-        return array_merge( $plugin_links, $links );
-    }
+	 * Adds plugin action links.
+	 *
+	 */
+	public function plugin_action_links($links)
+	{
+		$plugin_links = array(
+			'<a href="admin.php?page=wc-settings&tab=' . $this->WC_Buyte_Config->id . '">' . esc_html__('Settings', 'woocommerce') . '</a>',
+			'<a href="' . $this->WC_Buyte_Config->settings_website . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Website', 'woocommerce') . '</a>'
+		);
+		return array_merge($plugin_links, $links);
+	}
 
 	/**
 	 * Setup and Initiate Config
 	 *
 	 * @return void
 	 */
-	public function handle_config(){
+	public function handle_config()
+	{
 		$this->WC_Buyte_Config = new WC_Buyte_Config($this);
 		$this->WC_Buyte_Config->init();
 	}
@@ -306,7 +318,8 @@ class WC_Buyte{
 	 *
 	 * @return void
 	 */
-	public function handle_widget(){
+	public function handle_widget()
+	{
 		$this->WC_Buyte_Widget = new WC_Buyte_Widget($this);
 		$this->WC_Buyte_Widget->init_hooks();
 	}
@@ -316,9 +329,10 @@ class WC_Buyte{
 	 * @param array[string] $methods
 	 * @return void
 	 */
-	public function handle_payment_gateway($methods) {
+	public function handle_payment_gateway($methods)
+	{
 		$methods[] = 'WC_Buyte_Payment_Gateway';
-    	return $methods;
+		return $methods;
 	}
 	/**
 	 * gateway_availability
@@ -328,13 +342,14 @@ class WC_Buyte{
 	 * @param array $gateways
 	 * @return void
 	 */
-	public function gateway_availability($gateways){
+	public function gateway_availability($gateways)
+	{
 		$id = WC_Buyte_Config::get_id();
-		if(!isset($gateways[$id])){
+		if (!isset($gateways[$id])) {
 			return $gateways;
 		}
 
-		if ( !$this->is_buyte_checkout() ) {
+		if (!$this->is_buyte_checkout()) {
 			unset($gateways[$id]);
 		}
 
@@ -348,9 +363,10 @@ class WC_Buyte{
 	 *
 	 * @return boolean
 	 */
-	public function is_buyte_checkout() {
-		if( isset( $_POST['buyte_charge'] ) ){
-			return !empty( $_POST['buyte_charge'] );
+	public function is_buyte_checkout()
+	{
+		if (isset($_POST['buyte_charge'])) {
+			return !empty($_POST['buyte_charge']);
 		}
 		return false;
 	}
@@ -363,12 +379,13 @@ class WC_Buyte{
 	 * @param integer $order_id
 	 * @return void
 	 */
-	public function add_order_meta( $order_id ){
-		if ( !$this->is_buyte_checkout() ) {
+	public function add_order_meta($order_id)
+	{
+		if (!$this->is_buyte_checkout()) {
 			return;
 		}
 
-		$order = wc_get_order( $order_id );
+		$order = wc_get_order($order_id);
 		$charge_id = sanitize_text_field($_POST['buyte_charge']);
 		$payment_source_id = sanitize_text_field($_POST['buyte_payment_source']);
 		$payment_type = sanitize_text_field($_POST['buyte_payment_type']);
@@ -377,19 +394,19 @@ class WC_Buyte{
 
 		// $method_title = $payment_type . ' ('. $this->WC_Buyte_Config->label .')';
 		$method_title = $payment_type;
-		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
-			update_post_meta( $order_id, '_payment_method_title', $method_title );
+		if (WC_Buyte_Util::is_wc_lt('3.0')) {
+			update_post_meta($order_id, '_payment_method_title', $method_title);
 		} else {
-			$order->set_payment_method_title( $method_title );
+			$order->set_payment_method_title($method_title);
 			$order->save();
 		}
 
-		update_post_meta( $order_id, '_buyte_charge_id', $charge_id );
-		update_post_meta( $order_id, '_buyte_payment_source_id', $payment_source_id );
+		update_post_meta($order_id, '_buyte_charge_id', $charge_id);
+		update_post_meta($order_id, '_buyte_payment_source_id', $payment_source_id);
 
 		// Set Provider details
-		update_post_meta( $order_id, '_buyte_provider_name', $provider_name );
-		update_post_meta( $order_id, '_buyte_provider_reference', $provider_reference );
+		update_post_meta($order_id, '_buyte_provider_name', $provider_name);
+		update_post_meta($order_id, '_buyte_provider_reference', $provider_reference);
 	}
 
 	/**
@@ -402,8 +419,9 @@ class WC_Buyte{
 	 * @param integer $variation_id
 	 * @return void
 	 */
-	public function convert_product_to_cart( $product_id, $qty = 1, $variation_id = 0 ) {
-		if( empty( $product_id ) ){
+	public function convert_product_to_cart($product_id, $qty = 1, $variation_id = 0)
+	{
+		if (empty($product_id)) {
 			throw new Exception("Product ID not provided");
 		}
 
@@ -412,10 +430,10 @@ class WC_Buyte{
 		// First empty the cart to prevent wrong calculation.
 		WC()->cart->empty_cart();
 
-		if (empty( $variation_id )) {
-			WC()->cart->add_to_cart( $product_id, $qty );
+		if (empty($variation_id)) {
+			WC()->cart->add_to_cart($product_id, $qty);
 		} else {
-			WC()->cart->add_to_cart( $product_id, $qty, $variation_id );
+			WC()->cart->add_to_cart($product_id, $qty, $variation_id);
 		}
 
 		// Calculate totals
@@ -429,9 +447,9 @@ class WC_Buyte{
 
 		// Add taxes from cart
 		$tax = WC_Buyte_Util::get_cart_tax();
-		if( !empty( $tax ) ){
+		if (!empty($tax)) {
 			$items[] = (object) array(
-				'name' => __( "Tax", 'woocommerce' ),
+				'name' => __("Tax", 'woocommerce'),
 				'amount' => $tax,
 				'type' => 'tax'
 			);
@@ -439,9 +457,9 @@ class WC_Buyte{
 
 		// Add discount from cart
 		$discount = WC_Buyte_Util::get_cart_discount();
-		if( !empty( $discount ) ){
+		if (!empty($discount)) {
 			$items[] = (object) array(
-				'name' => __( "Discount", 'woocommerce' ),
+				'name' => __("Discount", 'woocommerce'),
 				'amount' => $discount,
 				'type' => 'discount'
 			);
@@ -449,14 +467,14 @@ class WC_Buyte{
 
 		// Include fees and taxes as display items.
 		$cart_fees = 0;
-		if ( WC_Buyte_Util::is_wc_lt( '3.2' ) ) {
+		if (WC_Buyte_Util::is_wc_lt('3.2')) {
 			$cart_fees = WC()->cart->fees;
 		} else {
 			$cart_fees = WC()->cart->get_fees();
 		}
-		foreach ( $cart_fees as $key => $fee ) {
-			$amount = WC_Buyte_Util::get_amount( $fee->amount );
-			if(!empty( $amount )){
+		foreach ($cart_fees as $key => $fee) {
+			$amount = WC_Buyte_Util::get_amount($fee->amount);
+			if (!empty($amount)) {
 				$items[] = (object) array(
 					'name' => $fee->name,
 					'amount' => $amount,
@@ -467,8 +485,8 @@ class WC_Buyte{
 
 		$data['items'] = $items;
 
-		if ( ! defined( 'BUYTE_CART' ) ) {
-			define( 'BUYTE_CART', true );
+		if (!defined('BUYTE_CART')) {
+			define('BUYTE_CART', true);
 		}
 
 		return $data;
@@ -483,35 +501,36 @@ class WC_Buyte{
 	 * @param object $posted
 	 * @return array
 	 */
-	public function get_shipping_from_cart( $posted ){
-		$this->calculate_shipping( $posted );
+	public function get_shipping_from_cart($posted)
+	{
+		$this->calculate_shipping($posted);
 
 		// Set the shipping options.
 		$data     = array();
 		$packages = WC()->shipping->get_packages();
 
-		if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
-			foreach ( $packages as $package_key => $package ) {
-				if ( empty( $package['rates'] ) ) {
-					throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce' ) );
+		if (!empty($packages) && WC()->customer->has_calculated_shipping()) {
+			foreach ($packages as $package_key => $package) {
+				if (empty($package['rates'])) {
+					throw new Exception(__('Unable to find shipping method for address.', 'woocommerce'));
 				}
 
-				foreach ( $package['rates'] as $key => $rate ) {
+				foreach ($package['rates'] as $key => $rate) {
 					$data['shippingMethods'][] = array(
 						'id'     => $rate->id,
 						'label'  => $rate->label,
 						'description' => '',
-						'rate' => WC_Buyte_Util::get_amount( $rate->cost ),
+						'rate' => WC_Buyte_Util::get_amount($rate->cost),
 					);
 				}
 			}
 		} else {
-			throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce' ) );
+			throw new Exception(__('Unable to find shipping method for address.', 'woocommerce'));
 		}
 
-		if ( isset( $data[0] ) ) {
+		if (isset($data[0])) {
 			// Auto select the first shipping method.
-			WC()->session->set( 'chosen_shipping_methods', array( $data[0]['id'] ) );
+			WC()->session->set('chosen_shipping_methods', array($data[0]['id']));
 		}
 
 		WC()->cart->calculate_totals();
@@ -522,7 +541,8 @@ class WC_Buyte{
 	/**
 	 * Calculate and set shipping method.
 	 */
-	protected function calculate_shipping( $address ) {
+	protected function calculate_shipping($address)
+	{
 		$country   = sanitize_text_field($address->country);
 		$state     = sanitize_text_field($address->state);
 		$postcode  = sanitize_text_field($address->postcode);
@@ -530,34 +550,34 @@ class WC_Buyte{
 		$address_1 = sanitize_text_field($address->address);
 		$address_2 = sanitize_text_field($address->address_2);
 
-		$wc_states = WC()->countries->get_states( $country );
+		$wc_states = WC()->countries->get_states($country);
 
 		/**
 		 * In some versions of Chrome, state can be a full name. So we need
 		 * to convert that to abbreviation as WC is expecting that.
 		 */
-		if ( 2 < strlen( $state ) && ! empty( $wc_states ) ) {
-			$state = array_search( ucwords( strtolower( $state ) ), $wc_states, true );
+		if (2 < strlen($state) && !empty($wc_states)) {
+			$state = array_search(ucwords(strtolower($state)), $wc_states, true);
 		}
 
 		WC()->shipping->reset_shipping();
 
-		if ( $postcode && WC_Validation::is_postcode( $postcode, $country ) ) {
-			$postcode = wc_format_postcode( $postcode, $country );
+		if ($postcode && WC_Validation::is_postcode($postcode, $country)) {
+			$postcode = wc_format_postcode($postcode, $country);
 		}
 
-		if ( $country ) {
-			WC()->customer->set_location( $country, $state, $postcode, $city );
-			WC()->customer->set_shipping_location( $country, $state, $postcode, $city );
+		if ($country) {
+			WC()->customer->set_location($country, $state, $postcode, $city);
+			WC()->customer->set_shipping_location($country, $state, $postcode, $city);
 		} else {
-			WC_Buyte_Util::is_wc_lt( '3.0' ) ? WC()->customer->set_to_base() : WC()->customer->set_billing_address_to_base();
-			WC_Buyte_Util::is_wc_lt( '3.0' ) ? WC()->customer->set_shipping_to_base() : WC()->customer->set_shipping_address_to_base();
+			WC_Buyte_Util::is_wc_lt('3.0') ? WC()->customer->set_to_base() : WC()->customer->set_billing_address_to_base();
+			WC_Buyte_Util::is_wc_lt('3.0') ? WC()->customer->set_shipping_to_base() : WC()->customer->set_shipping_address_to_base();
 		}
 
-		if ( WC_Buyte_Util::is_wc_lt( '3.0' ) ) {
-			WC()->customer->calculated_shipping( true );
+		if (WC_Buyte_Util::is_wc_lt('3.0')) {
+			WC()->customer->calculated_shipping(true);
 		} else {
-			WC()->customer->set_calculated_shipping( true );
+			WC()->customer->set_calculated_shipping(true);
 			WC()->customer->save();
 		}
 
@@ -574,19 +594,19 @@ class WC_Buyte{
 		$packages[0]['destination']['address']   = $address_1;
 		$packages[0]['destination']['address_2'] = $address_2;
 
-		foreach ( WC()->cart->get_cart() as $item ) {
-			if ( $item['data']->needs_shipping() ) {
-				if ( isset( $item['line_total'] ) ) {
+		foreach (WC()->cart->get_cart() as $item) {
+			if ($item['data']->needs_shipping()) {
+				if (isset($item['line_total'])) {
 					$packages[0]['contents_cost'] += $item['line_total'];
 				}
 			}
 		}
 
-		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+		$packages = apply_filters('woocommerce_cart_shipping_packages', $packages);
 
 		WC_Buyte_Config::log($packages, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
-		WC()->shipping->calculate_shipping( $packages );
+		WC()->shipping->calculate_shipping($packages);
 	}
 
 	/**
@@ -598,29 +618,30 @@ class WC_Buyte{
 	 * @param object $charge
 	 * @return void
 	 */
-	protected function create_order( $charge ){
+	protected function create_order($charge)
+	{
 		// Cart is already set here.
-		if ( WC()->cart->is_empty() ) {
+		if (WC()->cart->is_empty()) {
 			$errMsg = "Empty cart";
 			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
 			throw new Exception($errMsg);
 		}
 
-		if(!property_exists($charge, 'id')){
+		if (!property_exists($charge, 'id')) {
 			$errMsg = "No Buyte charge Id";
 			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
 			throw new Exception($errMsg);
 		}
 
-		if(!property_exists($charge, 'customer')){
+		if (!property_exists($charge, 'customer')) {
 			$errMsg = "No customer information in Buyte charge";
 			WC_Buyte_Config::log($errMsg, WC_Buyte_Config::LOG_LEVEL_ERROR);
 			throw new Exception($errMsg);
 		}
 
 		$shipping_method = null;
-		if( isset($charge->source->shippingMethod) ){
-			$this->update_shipping_method( $charge->source->shippingMethod );
+		if (isset($charge->source->shippingMethod)) {
+			$this->update_shipping_method($charge->source->shippingMethod);
 			$shipping_method = $charge->source->shippingMethod->id;
 		}
 
@@ -628,19 +649,19 @@ class WC_Buyte{
 
 		// Customer Name
 		$first_name = '';
-		if(property_exists($customer, 'givenName')){
+		if (property_exists($customer, 'givenName')) {
 			$first_name = $customer->givenName;
 		}
 		$last_name = '';
-		if(property_exists($customer, 'familyName')){
+		if (property_exists($customer, 'familyName')) {
 			$last_name = $customer->familyName;
 		}
-		if(property_exists($customer, 'name')){
+		if (property_exists($customer, 'name')) {
 			$split_name = WC_Buyte_Util::split_name($customer->name);
-			if(empty($first_name)){
+			if (empty($first_name)) {
 				$first_name = sanitize_text_field($split_name[0]);
 			}
-			if(empty($last_name)){
+			if (empty($last_name)) {
 				$last_name = sanitize_text_field($split_name[1]);
 			}
 		}
@@ -652,53 +673,51 @@ class WC_Buyte{
 			'billing_last_name' => $last_name,
 			'shipping_company' => '',
 			'shipping_country' =>
-				sanitize_text_field(
-					isset($customer->shippingAddress->countryCode) ?
-								$customer->shippingAddress->countryCode :
-								(isset($customer->shippingAddress->country) ? $customer->shippingAddress->country : '')
-					),
+			sanitize_text_field(
+				isset($customer->shippingAddress->countryCode) ?
+					$customer->shippingAddress->countryCode : (isset($customer->shippingAddress->country) ? $customer->shippingAddress->country : '')
+			),
 			'shipping_address_1' =>
-				sanitize_text_field(
-					isset($customer->shippingAddress->addressLines) ?
-						(sizeof($customer->shippingAddress->addressLines) > 0 ? $customer->shippingAddress->addressLines[0] : '') :
-						''
-					),
+			sanitize_text_field(
+				isset($customer->shippingAddress->addressLines) ?
+					(sizeof($customer->shippingAddress->addressLines) > 0 ? $customer->shippingAddress->addressLines[0] : '') :
+					''
+			),
 			'shipping_address_2' =>
-				sanitize_text_field(
-					isset($customer->shippingAddress->addressLines) ?
-						(sizeof($customer->shippingAddress->addressLines) > 1 ? $customer->shippingAddress->addressLines[1] : '') :
-						''
-					),
+			sanitize_text_field(
+				isset($customer->shippingAddress->addressLines) ?
+					(sizeof($customer->shippingAddress->addressLines) > 1 ? $customer->shippingAddress->addressLines[1] : '') :
+					''
+			),
 			'shipping_city' => sanitize_text_field(isset($customer->shippingAddress->locality) ? $customer->shippingAddress->locality : ''),
 			'shipping_state' => sanitize_text_field(isset($customer->shippingAddress->administrativeArea) ? $customer->shippingAddress->administrativeArea : ''),
 			'shipping_postcode' => sanitize_text_field(isset($customer->shippingAddress->postalCode) ? $customer->shippingAddress->postalCode : ''),
 		);
-		if(isset($customer->billingAddress) ? !empty((array) $customer->billingAddress) : false){
+		if (isset($customer->billingAddress) ? !empty((array) $customer->billingAddress) : false) {
 			$postdata += array(
 				'billing_company' => '',
 				'billing_country' =>
-					sanitize_text_field(
-						isset($customer->billingAddress->countryCode) ?
-								$customer->billingAddress->countryCode :
-								(isset($customer->billingAddress->country) ? $customer->billingAddress->country : '')
-						),
+				sanitize_text_field(
+					isset($customer->billingAddress->countryCode) ?
+						$customer->billingAddress->countryCode : (isset($customer->billingAddress->country) ? $customer->billingAddress->country : '')
+				),
 				'billing_address_1' =>
-					sanitize_text_field(
-						isset($customer->billingAddress->addressLines) ?
-							(sizeof($customer->billingAddress->addressLines) > 0 ? $customer->billingAddress->addressLines[0] : '') :
-							''
-						),
+				sanitize_text_field(
+					isset($customer->billingAddress->addressLines) ?
+						(sizeof($customer->billingAddress->addressLines) > 0 ? $customer->billingAddress->addressLines[0] : '') :
+						''
+				),
 				'billing_address_2' =>
-					sanitize_text_field(
-						isset($customer->billingAddress->addressLines) ?
-							(sizeof($customer->billingAddress->addressLines) > 1 ? $customer->billingAddress->addressLines[1] : '') :
-							''
-						),
+				sanitize_text_field(
+					isset($customer->billingAddress->addressLines) ?
+						(sizeof($customer->billingAddress->addressLines) > 1 ? $customer->billingAddress->addressLines[1] : '') :
+						''
+				),
 				'billing_city' => sanitize_text_field(isset($customer->billingAddress->locality) ? $customer->billingAddress->locality : ''),
 				'billing_state' => sanitize_text_field(isset($customer->billingAddress->administrativeArea) ? $customer->billingAddress->administrativeArea : ''),
 				'billing_postcode' => sanitize_text_field(isset($customer->billingAddress->postalCode) ? $customer->billingAddress->postalCode : ''),
 			);
-		}else{
+		} else {
 			$postdata += array(
 				'billing_company' => sanitize_text_field($postdata['shipping_company']),
 				'billing_country' => sanitize_text_field($postdata['shipping_country']),
@@ -713,11 +732,11 @@ class WC_Buyte{
 		// Comments
 		$comments = "Checkout completed with Buyte";
 		$payment_type = '';
-		if(isset($charge->source->paymentMethod->name)){
+		if (isset($charge->source->paymentMethod->name)) {
 			$payment_type = $charge->source->paymentMethod->name;
 			$comments .= "'s " . $charge->source->paymentMethod->name . ".";
 		}
-		if(isset($charge->source->shippingMethod)){
+		if (isset($charge->source->shippingMethod)) {
 			$shipping_method_name = sanitize_text_field(isset($charge->source->shippingMethod->label) ? $charge->source->shippingMethod->label : '');
 			$shipping_method_description = sanitize_textarea_field(isset($charge->source->shippingMethod->description) ? $charge->source->shippingMethod->description : '');
 			$shipping_method_rate = isset($charge->source->shippingMethod->rate) ? intval($charge->source->shippingMethod->rate) : 0;
@@ -737,7 +756,7 @@ class WC_Buyte{
 			'buyte_payment_type' => $payment_type,
 		);
 
-		if(isset( $charge->providerCharge->reference )){
+		if (isset($charge->providerCharge->reference)) {
 			$postdata += array(
 				'buyte_provider_name' => ucfirst(strtolower($charge->providerCharge->type)),
 				'buyte_provider_reference' => $charge->providerCharge->reference,
@@ -748,18 +767,18 @@ class WC_Buyte{
 		WC_Buyte_Config::log($postdata, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 
 		// Required to process checkout using WC
-		$_REQUEST['woocommerce-process-checkout-nonce'] = wp_create_nonce( 'woocommerce-process_checkout' );
+		$_REQUEST['woocommerce-process-checkout-nonce'] = wp_create_nonce('woocommerce-process_checkout');
 		$_POST = $postdata;
 
 		// Execute WC Proceed Checkout on the existing cart.
 
-		if ( ! defined( 'BUYTE_CHECKOUT' ) ) {
-			define( 'BUYTE_CHECKOUT', true );
+		if (!defined('BUYTE_CHECKOUT')) {
+			define('BUYTE_CHECKOUT', true);
 		}
 
 		WC()->checkout()->process_checkout();
 
-		die( 0 );
+		die(0);
 	}
 
 	/**
@@ -778,25 +797,26 @@ class WC_Buyte{
 	 * @param mixed $shipping_method
 	 * @return void
 	 */
-	protected function update_shipping_method( $shipping_method ) {
-		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+	protected function update_shipping_method($shipping_method)
+	{
+		$chosen_shipping_methods = WC()->session->get('chosen_shipping_methods');
 
-		if( is_object( $shipping_method ) ){
+		if (is_object($shipping_method)) {
 			$i = 0;
-			$vars = get_object_vars( $shipping_method );
-			foreach( $vars as $key => $value ) {
-				$chosen_shipping_methods[ $i ] = wc_clean( $value );
-				$i ++;
+			$vars = get_object_vars($shipping_method);
+			foreach ($vars as $key => $value) {
+				$chosen_shipping_methods[$i] = wc_clean($value);
+				$i++;
 			}
-		} else if ( is_array( $shipping_method ) ) {
-			foreach ( $shipping_method as $i => $value ) {
-				$chosen_shipping_methods[ $i ] = wc_clean( $value );
+		} else if (is_array($shipping_method)) {
+			foreach ($shipping_method as $i => $value) {
+				$chosen_shipping_methods[$i] = wc_clean($value);
 			}
 		} else {
-			$chosen_shipping_methods = array( $shipping_method );
+			$chosen_shipping_methods = array($shipping_method);
 		}
 
-		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+		WC()->session->set('chosen_shipping_methods', $chosen_shipping_methods);
 
 		WC()->cart->calculate_totals();
 	}
@@ -810,13 +830,14 @@ class WC_Buyte{
 	 * @param array $body
 	 * @return void
 	 */
-	protected function create_request($path, $body){
+	protected function create_request($path, $body)
+	{
 		$data = json_encode($body);
-		if(!$data){
+		if (!$data) {
 			throw new Exception('Cannot encode Buyte request body.');
 		}
 		$baseUrl = self::API_BASE_URL;
-		if(WC_Buyte_Config::is_developer_mode()){
+		if (WC_Buyte_Config::is_developer_mode()) {
 			$baseUrl = self::DEV_API_BASE_URL;
 		}
 		$url = $baseUrl . $path;
@@ -844,11 +865,12 @@ class WC_Buyte{
 	 * @param array $request
 	 * @return void
 	 */
-	protected function execute_request($request) {
+	protected function execute_request($request)
+	{
 		$url = $request['url'];
 		$args = $request['args'];
 		$response = wp_remote_post($url, $args);
-		if(is_wp_error($response)){
+		if (is_wp_error($response)) {
 			WC_Buyte_Config::log("execute_request: Error", WC_Buyte_Config::LOG_LEVEL_FATAL);
 			WC_Buyte_Config::log($response, WC_Buyte_Config::LOG_LEVEL_FATAL);
 			return;
@@ -867,7 +889,8 @@ class WC_Buyte{
 	 * @param object|stdClass $paymentToken
 	 * @return void
 	 */
-	protected function create_charge($paymentToken){
+	protected function create_charge($paymentToken)
+	{
 		$request = $this->create_request('charges', array(
 			'source' => $paymentToken->id,
 			'amount' => (int) $paymentToken->amount,
@@ -876,7 +899,7 @@ class WC_Buyte{
 		WC_Buyte_Config::log("create_charge: Attempting to charge Buyte Payment Token: " . $paymentToken->id, WC_Buyte_Config::LOG_LEVEL_INFO);
 		WC_Buyte_Config::log($request, WC_Buyte_Config::LOG_LEVEL_DEBUG);
 		$response = $this->execute_request($request);
-		if(empty($response) ? true : !property_exists( $response, 'id' )){
+		if (empty($response) ? true : !property_exists($response, 'id')) {
 			WC_Buyte_Config::log("create_charge: Could not create charge", WC_Buyte_Config::LOG_LEVEL_FATAL);
 			WC_Buyte_Config::log(json_encode($response), WC_Buyte_Config::LOG_LEVEL_FATAL);
 			throw new Exception("Could not create Charge");
@@ -892,18 +915,20 @@ class WC_Buyte{
 	 * Used to determine whether or not woocommerce is active or not.
 	 * Located in the root plugin file to prevent undefined/dependency issues.
 	 */
-	public static function is_woocommerce_active(){
-    	$active_plugins = (array) get_option( 'active_plugins', array() );
+	public static function is_woocommerce_active()
+	{
+		$active_plugins = (array) get_option('active_plugins', array());
 
-		if ( is_multisite() ) {
-			$active_plugins = array_merge( $active_plugins, get_site_option( 'active_sitewide_plugins', array() ) );
+		if (is_multisite()) {
+			$active_plugins = array_merge($active_plugins, get_site_option('active_sitewide_plugins', array()));
 		}
 
-		return in_array( 'woocommerce/woocommerce.php', $active_plugins ) || array_key_exists( 'woocommerce/woocommerce.php', $active_plugins );
+		return in_array('woocommerce/woocommerce.php', $active_plugins) || array_key_exists('woocommerce/woocommerce.php', $active_plugins);
 	}
 }
 
-function WC_Buyte() {
+function WC_Buyte()
+{
 	return WC_Buyte::instance();
 }
 
