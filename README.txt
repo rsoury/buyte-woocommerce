@@ -7,11 +7,13 @@ License: GPLv2 or later License http://www.gnu.org/licenses/gpl-2.0.html
 
 Buyte WooCommerce Plugin enables checkout using Apple Pay and Google Pay in a simple, codeless install. Accelerate your customer experience with a bite-sized checkout.
 
+**This plugin is development.**
+Register your interest here: [http://bit.ly/express-wallet-checkout](http://bit.ly/express-wallet-checkout)
+
 == Description ==
 
 **What is Buyte?**
 Buyte is a third-party software as a service provider that simplifies the process of getting digital wallets like Apple Pay and Google Pay set up on your eCommerce store.
-You can find more information about Buyte here: [https://buytecheckout.com/](https://buytecheckout.com/)
 
 **How does it work?**
 Buyte works by loading a small widget on the eCommerce website that loads widely used digital wallets, hassle-free.
@@ -21,19 +23,6 @@ To facilitate the checkout, Buyte uses the store's existing shipping settings an
 **Why use Buyte?**
 Buyte abstracts the compliance, security and development requirements to load these digital wallets out of the box.
 Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet. Don't force credit card forms and user login forms on your new visitors.
-
-== Setup ==
-1. Create an account at [https://dashboard.buytecheckout.com/signup/](https://dashboard.buytecheckout.com/signup/)
-2. Create a checkout
-3. Configure your payouts or connect your payment gateway
-4. Use your Buyte API keys and Checkout Widget ID in the plugin configuration.
-
-== Terms ==
-
-Buyte Terms of Service: [http://bit.ly/buyte-msa](http://bit.ly/buyte-msa)
-
-https://js.buytecheckout.com/v1/ is used to load the widget on the browser.
-https://api.buytecheckout.com/v1/ is our API base URL and is used to facilitate charge requests against tokenised payments created by the Buyte widget.
 
 == Contributions ==
 
