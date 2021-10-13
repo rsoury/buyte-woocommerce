@@ -4,15 +4,15 @@
  * Plugin Name:       Buyte
  * Plugin URI:        https://wordpress.org/plugins/buyte-woocommerce-plugin/
  * Description:       Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet.
- * Version:           0.2.2
+ * Version:           0.2.3
  * Author:            Buyte
- * Author URI:        https://www.buytecheckout.com/
+ * Author URI:        https://www.webdoodle.com.au/
  * License:           GPL-2.0+
  * Github URI:        https://github.com/rsoury/buyte-woocommerce
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  *
  *
- * @version  0.2.2
+ * @version  0.2.3
  * @package  Buyte
  * @author   Buyte
  */
@@ -29,15 +29,12 @@ if (!WC_Buyte::is_woocommerce_active()) {
 class WC_Buyte
 {
 	/* version number */
-	const VERSION = '0.2.2';
+	const VERSION = '0.2.3';
 	/* ajax */
 	const AJAX_SUCCESS = 'buyte_success';
 	const AJAX_GET_SHIPPING = 'buyte_shipping';
 	const AJAX_PRODUCT_TO_CART = 'buyte_product_to_cart';
 	const AJAX_PRODUCT_TO_CART_WITH_SHIPPING = 'buyte_product_to_cart_with_shipping';
-	/* api */
-	const API_BASE_URL = 'https://api.buytecheckout.com/v1/';
-	const DEV_API_BASE_URL = 'https://api.dev.buytecheckout.com/v1/';
 
 	/** @var \WC_Buyte single instance of this plugin */
 	protected static $instance;
@@ -298,7 +295,7 @@ class WC_Buyte
 	{
 		$plugin_links = array(
 			'<a href="admin.php?page=wc-settings&tab=' . $this->WC_Buyte_Config->id . '">' . esc_html__('Settings', 'woocommerce') . '</a>',
-			'<a href="' . $this->WC_Buyte_Config->settings_website . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Website', 'woocommerce') . '</a>'
+			'<a href="' . $this->WC_Buyte_Config->settings_website . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Contact Us', 'woocommerce') . '</a>'
 		);
 		return array_merge($plugin_links, $links);
 	}
@@ -836,10 +833,7 @@ class WC_Buyte
 		if (!$data) {
 			throw new Exception('Cannot encode Buyte request body.');
 		}
-		$baseUrl = self::API_BASE_URL;
-		if (WC_Buyte_Config::is_developer_mode()) {
-			$baseUrl = self::DEV_API_BASE_URL;
-		}
+		$baseUrl = $this->WC_Buyte_Config->get_api_endpoint();
 		$url = $baseUrl . $path;
 		$headers = array(
 			'Content-Type' => 'application/json',

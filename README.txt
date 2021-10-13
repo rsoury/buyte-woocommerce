@@ -1,19 +1,17 @@
 === Buyte ===
 Contributors: webdoodle
 Tags: apple pay, google pay, fast checkout, digital wallet, mobile first, mobile checkout
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 Tested up to: 5.2.2
 License: GPLv2 or later License http://www.gnu.org/licenses/gpl-2.0.html
 
-== Description ==
-
 Buyte WooCommerce Plugin enables checkout using Apple Pay and Google Pay in a simple, codeless install. Accelerate your customer experience with a bite-sized checkout.
 
-**This plugin is development.**
-Register your interest here: [http://bit.ly/express-wallet-checkout](http://bit.ly/express-wallet-checkout)
+== Description ==
 
 **What is Buyte?**
-Buyte is a third-party software as a service provider that simplifies the process of getting digital wallets like Apple Pay and Google Pay set up on your eCommerce store.
+Buyte is a open-source digital wallet payment orchestration platform that simplifies the process of getting digital wallets like Apple Pay and Google Pay set up on your eCommerce websites. 
+You can find more information about Buyte here: [https://github.com/rsoury/buyte](https://github.com/rsoury/buyte)
 
 **How does it work?**
 Buyte works by loading a small widget on the eCommerce website that loads widely used digital wallets, hassle-free.
@@ -23,6 +21,11 @@ To facilitate the checkout, Buyte uses the store's existing shipping settings an
 **Why use Buyte?**
 Buyte abstracts the compliance, security and development requirements to load these digital wallets out of the box.
 Offer your customers Apple Pay and Google Pay in a single install. By integrating Buyte into your e-commerce website, your visitors can securely checkout with their mobile wallet. Don't force credit card forms and user login forms on your new visitors.
+
+== Setup ==
+1. Deploy [Buyte](https://github.com/rsoury/buyte) to your cloud
+2. Configure your payment gateway in the [Buyte Dashboard](https://github.com/rsoury/buyte-dashboard)
+3. Use your Buyte API keys and Checkout Widget ID in the plugin configuration
 
 == Contributions ==
 
@@ -52,9 +55,11 @@ If this is the first time you've installed a WordPress Plugin, you may need to e
 7.  Configure your "Buyte" settings. See below for details.
 
 = Configure the plugin =
-To configure the plugin, go to __WooCommerce > Settings__ from the left-hand menu, then click "Buyte" from the top tab menu.
+To configure the plugin, go to __WooCommerce > Settings__ from the left-hand menu, then click "Buyte" from the top tab menu.
 
 * __Enable/Disable__ - check the box to enable Buyte.
+* __API Endpoint__ - enter your Buyte API endpoint after deploying Buyte to your cloud.
+* __Widget Endpoint__ - enter your Buyte Widget JS endpoint after deploying the Buyte Checkout.
 * __Checkout Widget ID__   - enter your Buyte Checkout Widget Id.
 * __Public Key__   - enter your Buyte Public Key.
 * __Secret Key__   - enter your Buyte Secret Key.
